@@ -1,0 +1,31 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "MIT"
+
+[[mods]]
+modId = "blockdurability"
+version = "1.0.0"
+displayName = "Block Durability"
+authors = "坠梦"
+description = "Give blocks durability based on hardness. Shoot glass, wood, and more until they break! Compatible with TaCZ."
+
+[[dependencies.blockdurability]]
+modId = "forge"
+mandatory = true
+versionRange = "[47,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.blockdurability]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1,1.21)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.blockdurability]]
+modId = "tacz"
+mandatory = false
+versionRange = "[1.0.2,)"
+ordering = "NONE"
+side = "BOTH"
