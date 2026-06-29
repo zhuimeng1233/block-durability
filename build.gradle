@@ -58,6 +58,11 @@ dependencies {
     compileOnly fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${tacz_version}")
 }
 
+tasks.register('sourcesJar', Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
