@@ -89,6 +89,10 @@ public class BlockHPConfig {
                                 "tag:minecraft:wooden_doors",
                                 // === 木活板门 ===
                                 "tag:minecraft:wooden_trapdoors",
+                                // === 木栅栏 ===
+                                "tag:minecraft:fences",
+                                // === 栅栏门 ===
+                                "tag:minecraft:fence_gates",
                                 // === 木楼梯 ===
                                 "tag:minecraft:wooden_stairs",
                                 // === 木半砖 ===
