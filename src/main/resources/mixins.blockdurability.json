@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "top.dreamfall.blockdurability.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "blockdurability.refmap.json",
+  "mixins": [
+    "MixinBlockRayTrace"
+  ],
+  "client": [],
+  "server": []
+}

@@ -15,6 +15,7 @@
 - **裂纹进度**：方块被击中后显示破坏进度裂纹（类似玩家挖矿）
 - **粒子 & 音效**：击中时播放方块破坏粒子和打击音效
 - **Tag 匹配**：支持方块标签（`tag:minecraft:planks`），自动兼容其他模组的同类方块
+- **栅栏修复**：通过 Mixin 劫持 TACZ 的 `bullet_ignore` 标签，使栅栏和栅栏门可被子弹命中
 
 ## 默认可破坏的方块
 
@@ -26,6 +27,8 @@
 | 原木 | `tag:minecraft:logs` |
 | 木门 | `tag:minecraft:wooden_doors` |
 | 木活板门 | `tag:minecraft:wooden_trapdoors` |
+| 木栅栏 | `tag:minecraft:fences` |
+| 栅栏门 | `tag:minecraft:fence_gates` |
 | 木楼梯 | `tag:minecraft:wooden_stairs` |
 | 木半砖 | `tag:minecraft:wooden_slabs` |
 | 木按钮 | `tag:minecraft:wooden_buttons` |
@@ -41,6 +44,7 @@
     enabled = true
     damagePerHit = 1.0          # 每发子弹的固定伤害
     useBulletDamage = false     # 使用子弹实体伤害
+    fixBulletIgnore = true      # 修复 TACZ 栅栏穿透问题（默认开启）
 
 [whitelist]
     blockWhitelist = [
@@ -73,13 +77,19 @@
 "minecraft:*stained_glass"
 ```
 
+## 升级与故障排除
+
+**升级 mod 后新增配置项未出现在配置文件中？**
+
+手动删除 `config/blockdurability-common.toml`，重启游戏即可自动生成包含全部配置项的新文件。
+
 ## 构建
 
 ```bash
 ./gradlew build
 ```
 
-产物在 `build/libs/blockdurability-1.0.0.jar`。
+产物在 `build/libs/blockdurability-1.1.0-neoforge.jar`。
 
 ## ⚠️ 兼容性声明
 
