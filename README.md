@@ -4,9 +4,9 @@
 
 > 此分支为 **Forge 1.20.1** 移植版。NeoForge 1.21.1 原版见 `master` 分支。
 
-> ⚠️ **AI 生成声明**：此移植由 AI（Claude）辅助完成，代码经过人工审查和验证，已通过编译构建，但未经全面游戏内测试。使用前建议在测试环境先行验证。
+> ⚠️ **AI 生成声明**：本项目代码部分由 AI 辅助生成，已通过人工审查和验证。如有疑虑请自行审计源码。
 
-> ⚠️ **兼容性声明**：本模组依赖 TACZ 内部 API（`AmmoHitBlockEvent` / `EntityKineticBullet`），API 路径已与 TACZ 1.20.1 源码交叉确认一致。若 TACZ 未来版本变更内部 API，可能导致兼容性问题。
+> ⚠️ **兼容性声明**：本模组依赖 TACZ 内部 API（`AmmoHitBlockEvent` / `EntityKineticBullet`），未在所有模组环境下进行全覆盖测试。如遇问题请提交 Issue。
 
 ## 功能
 
@@ -16,14 +16,29 @@
 - 粒子特效 + 音效反馈
 - 按方块单独覆盖血量（如 `minecraft:obsidian=20`）
 - TACZ 可选依赖，未安装时自动静默
+- **栅栏修复**（v1.1.0）：通过 Mixin 劫持 TACZ 的 `bullet_ignore` 标签，使栅栏和栅栏门可被子弹命中
+
+## 默认可破坏方块
+
+| 类别 | Tag |
+|---|---|
+| 玻璃 | `tag:c:glass_blocks` / `tag:c:glass_panes` |
+| 木板 | `tag:minecraft:planks` |
+| 原木 | `tag:minecraft:logs` |
+| 木门 | `tag:minecraft:wooden_doors` |
+| 木活板门 | `tag:minecraft:wooden_trapdoors` |
+| 木栅栏 | `tag:minecraft:fences` |
+| 栅栏门 | `tag:minecraft:fence_gates` |
+| 木楼梯 | `tag:minecraft:wooden_stairs` |
+| 木半砖 | `tag:minecraft:wooden_slabs` |
+| 木按钮/压力板 | `tag:minecraft:wooden_buttons` / `wooden_pressure_plates` |
+| 告示牌 | `tag:minecraft:standing_signs` 等 |
 
 ## 构建
 
 ```bash
 ./gradlew build
 ```
-
-产出位于 `build/libs/blockdurability-1.0.0.jar`。
 
 ## 依赖
 
@@ -32,17 +47,32 @@
 
 ## 配置
 
-配置文件位于 `config/blockdurability-common.toml`，可调参数：
+配置文件位于 `config/blockdurability-common.toml`：
 
-| 分类 | 配置项 | 说明 |
-|---|---|---|
-| general | `enabled` | 是否启用 |
-| general | `damagePerHit` | 每发子弹伤害 |
-| general | `useBulletDamage` | 使用子弹实际伤害 |
-| whitelist | `blockWhitelist` | 可破坏方块白名单 |
-| hp_calculation | `hardnessMultiplier` | 硬度→血量倍率 |
-| hp_calculation | `blockHPOverrides` | 按方块覆盖血量 |
-| effects | `dropItems` | 破坏后是否掉落 |
+```toml
+[general]
+    enabled = true
+    damagePerHit = 1.0
+    fixBulletIgnore = true      # 修复栅栏穿透（v1.1.0+ 默认开启）
+
+[whitelist]
+    blockWhitelist = [
+        "tag:c:glass_blocks",
+        "tag:minecraft:planks",
+        # 支持 tag: / ID / 通配符 三种格式
+    ]
+
+[hp_calculation]
+    hardnessMultiplier = 1.5
+    blockHPOverrides = []       # "minecraft:obsidian=50"
+
+[effects]
+    dropItems = false
+```
+
+## 升级与故障排除
+
+升级 mod 后新增配置项未出现？删除 `config/blockdurability-common.toml`，重启游戏自动重建。
 
 ## 移植说明
 

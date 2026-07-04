@@ -35,6 +35,11 @@ public class BlockHPConfig {
     public static ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCK_HP_OVERRIDES;
 
     // ========================
+    // Mixin 控制
+    // ========================
+    public static ForgeConfigSpec.BooleanValue FIX_BULLET_IGNORE;
+
+    // ========================
     // 特效
     // ========================
     public static ForgeConfigSpec.BooleanValue SPAWN_BREAK_PARTICLES;
@@ -62,6 +67,9 @@ public class BlockHPConfig {
         BULLET_DAMAGE_MULTIPLIER = builder
                 .comment("Multiplier when useBulletDamage is true")
                 .defineInRange("bulletDamageMultiplier", 1.0, 0.0, 100.0);
+        FIX_BULLET_IGNORE = builder
+                .comment("Fix TaCZ bullet_ignore tag so fences and fence gates can be hit by bullets")
+                .define("fixBulletIgnore", true);
         builder.pop();
 
         builder.push("whitelist");
@@ -89,6 +97,10 @@ public class BlockHPConfig {
                                 "tag:minecraft:wooden_doors",
                                 // === 木活板门 ===
                                 "tag:minecraft:wooden_trapdoors",
+                                // === 木栅栏 ===
+                                "tag:minecraft:fences",
+                                // === 栅栏门 ===
+                                "tag:minecraft:fence_gates",
                                 // === 木楼梯 ===
                                 "tag:minecraft:wooden_stairs",
                                 // === 木半砖 ===

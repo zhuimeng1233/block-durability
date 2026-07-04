@@ -56,6 +56,10 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${tacz_version}")
+
+    // Mixin
+    implementation 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 tasks.register('sourcesJar', Jar) {
@@ -65,4 +69,7 @@ tasks.register('sourcesJar', Jar) {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs += [
+        '-Amixin.refmap=blockdurability.refmap.json'
+    ]
 }

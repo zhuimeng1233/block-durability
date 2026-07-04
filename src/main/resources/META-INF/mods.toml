@@ -4,10 +4,13 @@ license = "MIT"
 
 [[mods]]
 modId = "blockdurability"
-version = "1.0.0"
+version = "1.1.0-forge"
 displayName = "Block Durability"
 authors = "坠梦"
 description = "Give blocks durability based on hardness. Shoot glass, wood, and more until they break! Compatible with TaCZ."
+
+[[mixins]]
+config = "mixins.blockdurability.json"
 
 [[dependencies.blockdurability]]
 modId = "forge"
