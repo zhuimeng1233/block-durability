@@ -3,6 +3,12 @@
 
 给 Minecraft 方块加上耐久值——用枪打碎它们！
 
+<p align="center">
+  <a href="assets/block-durability-demo.gif">
+    <img src="assets/block-durability-demo.gif" alt="Block Durability 游戏内演示" width="720">
+  </a>
+</p>
+
 ## 依赖
 
 - **NeoForge** 1.21.1
