@@ -2,6 +2,12 @@
 
 方块耐久系统——给方块加上血量，用 TaCZ 枪械射击可破坏玻璃、木板等方块。
 
+<p align="center">
+  <a href="assets/block-durability-demo.gif">
+    <img src="assets/block-durability-demo.gif" alt="Block Durability Forge 1.20.1 游戏内演示" width="720">
+  </a>
+</p>
+
 > 此分支为 **Forge 1.20.1** 移植版。NeoForge 1.21.1 原版见 `master` 分支。
 
 > ⚠️ **AI 生成声明**：本项目代码部分由 AI 辅助生成，已通过人工审查和验证。如有疑虑请自行审计源码。
