@@ -1,5 +1,5 @@
 这是新仓库，但旧的也保留了
-# [BDur] Block Durability
+# [BD][BDur] Block Durability
 
 给 Minecraft 方块加上耐久值——用枪打碎它们！
 
