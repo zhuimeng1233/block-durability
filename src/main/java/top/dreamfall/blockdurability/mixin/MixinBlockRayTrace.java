@@ -1,6 +1,5 @@
 package top.dreamfall.blockdurability.mixin;
 
-import com.tacz.guns.init.ModBlocks;
 import com.tacz.guns.util.block.BlockRayTrace;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
@@ -18,7 +17,7 @@ import java.util.function.Predicate;
 /**
  * 劫持 TACZ 的 BlockRayTrace.IGNORES 谓词，
  * 将栅栏和栅栏门从子弹忽略列表中移除。
- * 可通过配置文件 fixBulletIgnore 关闭。
+ * 使用 require = 0 软注入，确保跨衍生版本时弹性兼容。
  */
 @Mixin(value = BlockRayTrace.class, remap = false)
 public class MixinBlockRayTrace {
@@ -28,7 +27,7 @@ public class MixinBlockRayTrace {
     @Mutable
     private static Predicate<BlockState> IGNORES;
 
-    @Inject(method = "<clinit>", at = @At("TAIL"))
+    @Inject(method = "<clinit>", at = @At("TAIL"), require = 0)
     private static void modifyBulletIgnore(CallbackInfo ci) {
         Predicate<BlockState> original = IGNORES;
 

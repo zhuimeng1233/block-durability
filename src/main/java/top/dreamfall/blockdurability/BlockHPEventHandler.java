@@ -10,12 +10,15 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.Optional;
 
 /**
  * 监听 AmmoHitBlockEvent，对白名单内的方块造成耐久伤害。
+ * 同时监听定时与卸载事件，管理方块耐久状态的生命周期。
  */
 public class BlockHPEventHandler {
 
@@ -55,6 +58,23 @@ public class BlockHPEventHandler {
             // 还在，打击反馈
             float ratio = 1f - (remaining.get() / BlockHPManager.getMaxHP(state));
             spawnHitEffects(serverLevel, pos, state, hitVec, ratio);
+        }
+    }
+
+    @SubscribeEvent
+    public void onLevelTick(TickEvent.LevelTickEvent event) {
+        if (event.phase == TickEvent.Phase.END && event.level instanceof ServerLevel serverLevel) {
+            // 每 2 秒 (40 ticks) 检查一次残血方块的自愈与内存清理
+            if (serverLevel.getGameTime() % 40 == 0) {
+                BlockHPManager.tick(serverLevel);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            BlockHPManager.onChunkUnload(serverLevel, event.getChunk().getPos());
         }
     }
 

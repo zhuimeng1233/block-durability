@@ -3,10 +3,12 @@ package top.dreamfall.blockdurability;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -16,10 +18,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 方块耐久管理。白名单制（支持 Tag）+ 硬度计算血量。
+ * 具备多维度安全隔离与超时自动愈合/内存清理机制。
  */
 public class BlockHPManager {
 
-    private static final ConcurrentHashMap<BlockPos, DamageState> damagedBlocks = new ConcurrentHashMap<>();
+    public record BlockKey(ResourceKey<Level> dimension, BlockPos pos) {}
+
+    private record DamageState(float currentHP, float maxHP, int crackId, long lastHitTime) {}
+
+    private static final ConcurrentHashMap<BlockKey, DamageState> damagedBlocks = new ConcurrentHashMap<>();
     private static int nextCrackId = 0;
 
     /** 预编译：Tag 白名单 */
@@ -29,8 +36,6 @@ public class BlockHPManager {
     /** 预编译的 HP 覆盖：名字 pattern → hp */
     private static final Map<String, Float> hpOverridePatterns = new LinkedHashMap<>();
     private static boolean compiled = false;
-
-    private record DamageState(float currentHP, float maxHP, int crackId) {}
 
     // ==================== 公开 API ====================
 
@@ -61,14 +66,15 @@ public class BlockHPManager {
         if (!(level instanceof ServerLevel serverLevel)) return Optional.of(0f);
         if (!isBreakable(state)) return Optional.of(0f);
 
-        DamageState existing = damagedBlocks.get(pos);
+        BlockKey key = new BlockKey(level.dimension(), pos.immutable());
+        DamageState existing = damagedBlocks.get(key);
         float maxHP = getMaxHP(state);
         float currentHP;
 
         if (existing != null) {
             if (Math.abs(existing.maxHP - maxHP) > 0.01f) {
                 clearCrackOverlay(serverLevel, pos, existing.crackId);
-                damagedBlocks.remove(pos);
+                damagedBlocks.remove(key);
                 existing = null;
             }
         }
@@ -77,14 +83,14 @@ public class BlockHPManager {
         float newHP = currentHP - damage;
 
         if (newHP <= 0) {
-            damagedBlocks.remove(pos);
+            damagedBlocks.remove(key);
             if (existing != null) clearCrackOverlay(serverLevel, pos, existing.crackId);
             level.destroyBlock(pos, BlockHPConfig.DROP_ITEMS.get());
             return Optional.empty();
         }
 
         int crackId = (existing != null) ? existing.crackId : allocateCrackId();
-        damagedBlocks.put(pos, new DamageState(newHP, maxHP, crackId));
+        damagedBlocks.put(key, new DamageState(newHP, maxHP, crackId, System.currentTimeMillis()));
         sendCrackProgress(serverLevel, pos, crackId, newHP, maxHP);
         return Optional.of(newHP);
     }
@@ -109,17 +115,49 @@ public class BlockHPManager {
         );
     }
 
-    public static float getCurrentHP(BlockPos pos, BlockState state) {
-        DamageState existing = damagedBlocks.get(pos);
+    public static float getCurrentHP(Level level, BlockPos pos, BlockState state) {
+        DamageState existing = damagedBlocks.get(new BlockKey(level.dimension(), pos));
         return (existing != null) ? existing.currentHP : getMaxHP(state);
     }
 
-    public static void onBlockRemoved(BlockPos pos) {
-        damagedBlocks.remove(pos);
+    public static void onBlockRemoved(Level level, BlockPos pos) {
+        damagedBlocks.remove(new BlockKey(level.dimension(), pos));
     }
 
     public static void clearAll() {
         damagedBlocks.clear();
+    }
+
+    /**
+     * 定时自愈与内存清理：超过 20 秒未受伤害的残血方块清除裂纹并回收内存。
+     */
+    public static void tick(ServerLevel level) {
+        long now = System.currentTimeMillis();
+        long timeoutMs = 20000L;
+        damagedBlocks.entrySet().removeIf(entry -> {
+            if (!entry.getKey().dimension().equals(level.dimension())) return false;
+            DamageState ds = entry.getValue();
+            if (now - ds.lastHitTime() > timeoutMs) {
+                clearCrackOverlay(level, entry.getKey().pos(), ds.crackId());
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * 区块卸载时清理对应的裂纹缓存，防止内存泄漏。
+     */
+    public static void onChunkUnload(ServerLevel level, ChunkPos chunkPos) {
+        damagedBlocks.entrySet().removeIf(entry -> {
+            if (!entry.getKey().dimension().equals(level.dimension())) return false;
+            BlockPos p = entry.getKey().pos();
+            if ((p.getX() >> 4) == chunkPos.x && (p.getZ() >> 4) == chunkPos.z) {
+                clearCrackOverlay(level, p, entry.getValue().crackId());
+                return true;
+            }
+            return false;
+        });
     }
 
     // ==================== 内部 ====================
@@ -131,7 +169,7 @@ public class BlockHPManager {
     private static void sendCrackProgress(ServerLevel level, BlockPos pos, int crackId,
                                            float currentHP, float maxHP) {
         float ratio = 1f - (currentHP / maxHP);
-        int progress = Math.max(0, Math.min(9, (int) (ratio * 10)));
+        int progress = net.minecraft.util.Mth.clamp((int) (ratio * 10), 0, 9);
         for (ServerPlayer player : level.players()) {
             if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) < 1024) {
                 player.connection.send(
