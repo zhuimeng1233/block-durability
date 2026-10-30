@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 /**
  * 方块耐久管理。白名单制（支持 Tag）+ 硬度计算血量。
@@ -26,18 +27,28 @@ public class BlockHPManager {
 
     private record DamageState(float currentHP, float maxHP, int crackId, long lastHitTime) {}
 
+    private record HPOverride(Pattern pattern, float hp) {}
+
     private static final ConcurrentHashMap<BlockKey, DamageState> damagedBlocks = new ConcurrentHashMap<>();
     private static int nextCrackId = 0;
 
     /** 预编译：Tag 白名单 */
     private static final List<TagKey<Block>> tagWhitelist = new ArrayList<>();
-    /** 预编译：名字白名单（精确 & 通配符） */
-    private static final List<String> nameWhitelist = new ArrayList<>();
-    /** 预编译的 HP 覆盖：名字 pattern → hp */
-    private static final Map<String, Float> hpOverridePatterns = new LinkedHashMap<>();
-    private static boolean compiled = false;
+    /** 预编译：名字白名单正则表达式 */
+    private static final List<Pattern> nameWhitelistPatterns = new ArrayList<>();
+    /** 预编译的 HP 覆盖：Pattern → hp */
+    private static final List<HPOverride> hpOverrides = new ArrayList<>();
+    private static volatile boolean compiled = false;
 
     // ==================== 公开 API ====================
+
+    /**
+     * 重置预编译缓存（配置热重载时调用）
+     */
+    public static synchronized void invalidateCache() {
+        compiled = false;
+        BlockDurability.LOGGER.info("Block Durability cache invalidated due to config reload.");
+    }
 
     /**
      * @return 方块是否在白名单中（可被破坏）
@@ -50,10 +61,10 @@ public class BlockHPManager {
             if (state.is(tag)) return true;
         }
 
-        // 名字匹配（glob & 精确）
+        // 名字匹配（正则 & 通配符）
         String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-        for (String pattern : nameWhitelist) {
-            if (matchesGlob(id, pattern)) return true;
+        for (Pattern pattern : nameWhitelistPatterns) {
+            if (pattern.matcher(id).matches()) return true;
         }
         return false;
     }
@@ -65,6 +76,7 @@ public class BlockHPManager {
     public static Optional<Float> damageBlock(Level level, BlockPos pos, BlockState state, float damage) {
         if (!(level instanceof ServerLevel serverLevel)) return Optional.of(0f);
         if (!isBreakable(state)) return Optional.of(0f);
+        if (!Float.isFinite(damage) || damage <= 0) return Optional.of(0f);
 
         BlockKey key = new BlockKey(level.dimension(), pos.immutable());
         DamageState existing = damagedBlocks.get(key);
@@ -96,23 +108,26 @@ public class BlockHPManager {
     }
 
     /**
-     * 获取方块最大 HP，基于硬度公式。
+     * 获取方块最大 HP，优先采用覆盖项，否则基于硬度公式。
      */
     public static float getMaxHP(BlockState state) {
         compileIfNeeded();
         String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
 
-        for (var entry : hpOverridePatterns.entrySet()) {
-            if (matchesGlob(id, entry.getKey())) {
-                return entry.getValue();
+        for (HPOverride override : hpOverrides) {
+            if (override.pattern().matcher(id).matches()) {
+                return override.hp();
             }
         }
 
         float hardness = state.getBlock().defaultDestroyTime();
-        return Math.max(
-                BlockHPConfig.MIN_BLOCK_HP.get().floatValue(),
-                hardness * BlockHPConfig.HARDNESS_MULTIPLIER.get().floatValue()
-        );
+        float multiplier = BlockHPConfig.HARDNESS_MULTIPLIER.get().floatValue();
+        float minHP = BlockHPConfig.MIN_BLOCK_HP.get().floatValue();
+        float computed = hardness * multiplier;
+        if (!Float.isFinite(computed) || computed < minHP) {
+            return minHP;
+        }
+        return computed;
     }
 
     public static float getCurrentHP(Level level, BlockPos pos, BlockState state) {
@@ -129,11 +144,23 @@ public class BlockHPManager {
     }
 
     /**
-     * 定时自愈与内存清理：超过 20 秒未受伤害的残血方块清除裂纹并回收内存。
+     * 定时自愈与内存清理：方块在设定时间内未受伤害则清除裂纹并回收内存。
+     * 支持通过配置文件或 /gamerule blockDurabilityHealSeconds 动态调整。
      */
     public static void tick(ServerLevel level) {
+        int timeoutSeconds = BlockHPConfig.HEAL_TIMEOUT_SECONDS.get();
+        if (level.getGameRules() != null) {
+            int ruleVal = level.getGameRules().getInt(BlockDurability.RULE_BLOCK_HEAL_SECONDS);
+            if (ruleVal != 120) {
+                timeoutSeconds = ruleVal;
+            }
+        }
+        if (timeoutSeconds <= 0) {
+            return; // 0 或负数：关闭自愈，残血裂纹一直保留
+        }
+
         long now = System.currentTimeMillis();
-        long timeoutMs = 20000L;
+        long timeoutMs = timeoutSeconds * 1000L;
         damagedBlocks.entrySet().removeIf(entry -> {
             if (!entry.getKey().dimension().equals(level.dimension())) return false;
             DamageState ds = entry.getValue();
@@ -168,6 +195,7 @@ public class BlockHPManager {
 
     private static void sendCrackProgress(ServerLevel level, BlockPos pos, int crackId,
                                            float currentHP, float maxHP) {
+        if (maxHP <= 0f) return;
         float ratio = 1f - (currentHP / maxHP);
         int progress = Math.clamp((int) (ratio * 10), 0, 9);
         for (ServerPlayer player : level.players()) {
@@ -191,55 +219,64 @@ public class BlockHPManager {
 
     private static synchronized void compileIfNeeded() {
         if (compiled) return;
-        compiled = true;
 
         tagWhitelist.clear();
-        nameWhitelist.clear();
+        nameWhitelistPatterns.clear();
 
         for (String entry : BlockHPConfig.BLOCK_WHITELIST.get()) {
+            if (entry == null) continue;
             String trimmed = entry.trim();
             if (trimmed.isEmpty()) continue;
 
             if (trimmed.startsWith("tag:")) {
                 // Tag 匹配：tag:namespace:path
-                String tagId = trimmed.substring(4);
-                ResourceLocation rl = ResourceLocation.parse(tagId);
-                tagWhitelist.add(TagKey.create(Registries.BLOCK, rl));
+                String tagId = trimmed.substring(4).trim();
+                ResourceLocation rl = tagId.isEmpty() ? null : ResourceLocation.tryParse(tagId);
+                if (rl != null && !rl.getPath().isEmpty()) {
+                    tagWhitelist.add(TagKey.create(Registries.BLOCK, rl));
+                } else {
+                    BlockDurability.LOGGER.warn("Invalid tag in block whitelist: '{}'. Skipping.", trimmed);
+                }
             } else {
                 // 名字匹配（精确 / 通配符）
-                nameWhitelist.add(trimmed);
+                nameWhitelistPatterns.add(globToPattern(trimmed));
             }
         }
 
         // 编译 HP 覆盖
-        hpOverridePatterns.clear();
+        hpOverrides.clear();
         for (String entry : BlockHPConfig.BLOCK_HP_OVERRIDES.get()) {
+            if (entry == null) continue;
             String[] parts = entry.split("=", 2);
-            if (parts.length != 2) continue;
+            if (parts.length != 2) {
+                BlockDurability.LOGGER.warn("Invalid format in HP override: '{}' (expected 'modid:block=hp'). Skipping.", entry);
+                continue;
+            }
             String key = parts[0].trim();
+            if (key.isEmpty()) {
+                BlockDurability.LOGGER.warn("Empty pattern in HP override: '{}'. Skipping.", entry);
+                continue;
+            }
             try {
                 float hp = Float.parseFloat(parts[1].trim());
-                if (!key.isEmpty()) hpOverridePatterns.put(key, hp);
-            } catch (NumberFormatException ignored) {}
+                if (!Float.isFinite(hp) || hp <= 0f) {
+                    BlockDurability.LOGGER.warn("Invalid HP value in override: '{}' (must be a finite positive number). Skipping.", entry);
+                    continue;
+                }
+                hpOverrides.add(new HPOverride(globToPattern(key), hp));
+            } catch (NumberFormatException e) {
+                BlockDurability.LOGGER.warn("Failed to parse HP number in override: '{}'. Skipping.", entry);
+            }
         }
+
+        compiled = true;
     }
 
     /**
-     * 通配符匹配：* 匹配任意字符序列。
+     * 将通配符 glob 转为正则表达式 Pattern
      */
-    private static boolean matchesGlob(String input, String pattern) {
-        String[] parts = pattern.split("\\*", -1);
-        int idx = 0;
-        for (int i = 0; i < parts.length; i++) {
-            String part = parts[i];
-            if (part.isEmpty()) {
-                if (i == parts.length - 1) return true;
-                continue;
-            }
-            int found = input.indexOf(part, idx);
-            if (found < 0) return false;
-            idx = found + part.length();
-        }
-        return parts[parts.length - 1].isEmpty() || idx == input.length();
+    public static Pattern globToPattern(String glob) {
+        String regex = "^" + Pattern.quote(glob).replace("*", "\\E.*\\Q") + "$";
+        return Pattern.compile(regex);
     }
 }

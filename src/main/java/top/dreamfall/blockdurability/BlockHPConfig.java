@@ -1,5 +1,6 @@
 package top.dreamfall.blockdurability;
 
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -17,6 +18,7 @@ public class BlockHPConfig {
     public static ModConfigSpec.DoubleValue DAMAGE_PER_HIT;
     public static ModConfigSpec.BooleanValue USE_BULLET_DAMAGE;
     public static ModConfigSpec.DoubleValue BULLET_DAMAGE_MULTIPLIER;
+    public static ModConfigSpec.IntValue HEAL_TIMEOUT_SECONDS;
 
     // ========================
     // 白名单：只有匹配的方块才能被破坏
@@ -35,10 +37,12 @@ public class BlockHPConfig {
     public static ModConfigSpec.ConfigValue<List<? extends String>> BLOCK_HP_OVERRIDES;
 
     // ========================
+    // 爆炸耐久机制（TaCZ 爆炸、原版 TNT、苦力怕、模组爆炸）
     // ========================
-    // Mixin 控制
-    // ========================
-    public static ModConfigSpec.BooleanValue FIX_BULLET_IGNORE;
+    public static ModConfigSpec.BooleanValue EXPLOSION_ENABLED;
+    public static ModConfigSpec.DoubleValue EXPLOSION_DAMAGE_MULTIPLIER;
+    public static ModConfigSpec.DoubleValue EXPLOSION_MAX_RADIUS;
+    public static ModConfigSpec.BooleanValue HANDLE_VANILLA_EXPLOSIONS;
 
     // ========================
     // 特效
@@ -68,22 +72,22 @@ public class BlockHPConfig {
         BULLET_DAMAGE_MULTIPLIER = builder
                 .comment("Multiplier when useBulletDamage is true")
                 .defineInRange("bulletDamageMultiplier", 1.0, 0.0, 100.0);
-        FIX_BULLET_IGNORE = builder
-                .comment("Fix TaCZ bullet_ignore tag so fences and fence gates can be hit by bullets")
-                .define("fixBulletIgnore", true);
+        HEAL_TIMEOUT_SECONDS = builder
+                .comment("Seconds of inactivity before a damaged block heals and clears cracks (0 to disable auto-healing)")
+                .defineInRange("healTimeoutSeconds", 120, 0, 86400);
         builder.pop();
 
         builder.push("whitelist");
         BLOCK_WHITELIST = builder
                 .comment(
-                        "Whitelist: only blocks matching these patterns can be damaged by bullets.",
+                        "Whitelist: only blocks matching these patterns can be damaged by bullets and explosions.",
                         "Two formats supported:",
                         "  \"tag:namespace:path\"  → Block tag matching (auto-compatible with all mods!)",
                         "  \"modid:block_id\"     → Exact name match",
                         "  \"modid:*pattern*\"    → Wildcard name match",
-                        "Blocks NOT in this list will ignore bullet damage entirely.",
+                        "Blocks NOT in this list will ignore block durability damage.",
                         "",
-                        "Default covers: glass, wood planks, logs, wooden doors/trapdoors/fences, leaves"
+                        "Default covers: glass, wood planks, logs, leaves, wooden doors/trapdoors/fences"
                 )
                 .defineListAllowEmpty("blockWhitelist",
                         Arrays.asList(
@@ -94,6 +98,8 @@ public class BlockHPConfig {
                                 "tag:minecraft:planks",
                                 // === 原木 ===
                                 "tag:minecraft:logs",
+                                // === 树叶 ===
+                                "tag:minecraft:leaves",
                                 // === 木门 ===
                                 "tag:minecraft:wooden_doors",
                                 // === 木活板门 ===
@@ -116,7 +122,7 @@ public class BlockHPConfig {
                                 "tag:minecraft:ceiling_hanging_signs",
                                 "tag:minecraft:wall_hanging_signs"
                         ),
-                        obj -> obj instanceof String && !((String) obj).isEmpty());
+                        BlockHPConfig::isValidWhitelistEntry);
         builder.pop();
 
         builder.push("hp_calculation");
@@ -144,7 +150,22 @@ public class BlockHPConfig {
                         "  \"minecraft:*glass*=1\"    - force all glass to 1 HP"
                 )
                 .defineListAllowEmpty("blockHPOverrides", Arrays.asList(),
-                        obj -> obj instanceof String && ((String) obj).contains("="));
+                        BlockHPConfig::isValidHpOverride);
+        builder.pop();
+
+        builder.push("explosion");
+        EXPLOSION_ENABLED = builder
+                .comment("Enable durability damage from explosions (TaCZ, TNT, Creeper, etc.)")
+                .define("enabled", true);
+        EXPLOSION_DAMAGE_MULTIPLIER = builder
+                .comment("Multiplier for durability damage caused by explosions")
+                .defineInRange("damageMultiplier", 1.0, 0.0, 100.0);
+        EXPLOSION_MAX_RADIUS = builder
+                .comment("Maximum explosion radius to scan for durability damage (performance safety clamp)")
+                .defineInRange("maxRadius", 16.0, 1.0, 64.0);
+        HANDLE_VANILLA_EXPLOSIONS = builder
+                .comment("Whether to apply residual durability damage to vanilla/mod explosions (TNT, Creeper, etc.)")
+                .define("handleVanillaExplosions", true);
         builder.pop();
 
         builder.push("effects");
@@ -160,6 +181,33 @@ public class BlockHPConfig {
         builder.pop();
 
         return new Config();
+    }
+
+    public static boolean isValidWhitelistEntry(Object obj) {
+        if (!(obj instanceof String str)) return false;
+        String trimmed = str.trim();
+        if (trimmed.isEmpty()) return false;
+        if (trimmed.startsWith("tag:")) {
+            String tagId = trimmed.substring(4).trim();
+            if (tagId.isEmpty()) return false;
+            ResourceLocation rl = ResourceLocation.tryParse(tagId);
+            return rl != null && !rl.getPath().isEmpty();
+        }
+        return true;
+    }
+
+    public static boolean isValidHpOverride(Object obj) {
+        if (!(obj instanceof String str)) return false;
+        String[] parts = str.split("=", 2);
+        if (parts.length != 2) return false;
+        String key = parts[0].trim();
+        if (key.isEmpty()) return false;
+        try {
+            float hp = Float.parseFloat(parts[1].trim());
+            return Float.isFinite(hp) && hp > 0f;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public static class Config {}

@@ -4,13 +4,10 @@ license = "MIT"
 
 [[mods]]
 modId = "blockdurability"
-version = "1.2.0-neoforge"
+version = "2.0.0-neoforge"
 displayName = "Block Durability"
 authors = "坠梦"
 description = "Give blocks durability based on hardness. Shoot glass, wood, and more until they break! Compatible with TaCZ."
-
-[[mixins]]
-config = "mixins.blockdurability.json"
 
 [[dependencies.blockdurability]]
 modId = "neoforge"
@@ -25,4 +22,4 @@ versionRange = "[1.21.1,1.22)"
 [[dependencies.blockdurability]]
 modId = "tacz"
 type = "optional"
-versionRange = "[1.1.6,)"
+versionRange = "[1.1.6,1.2.0)"
