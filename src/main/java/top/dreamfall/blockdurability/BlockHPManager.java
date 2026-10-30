@@ -136,7 +136,22 @@ public class BlockHPManager {
     }
 
     public static void onBlockRemoved(Level level, BlockPos pos) {
-        damagedBlocks.remove(new BlockKey(level.dimension(), pos));
+        if (level instanceof ServerLevel serverLevel) {
+            clearBlock(serverLevel, pos);
+        } else {
+            damagedBlocks.remove(new BlockKey(level.dimension(), pos));
+        }
+    }
+
+    /**
+     * 清理指定位置的受损状态，并向附近玩家同步清除破坏裂纹。
+     */
+    public static void clearBlock(ServerLevel level, BlockPos pos) {
+        BlockKey key = new BlockKey(level.dimension(), pos.immutable());
+        DamageState removed = damagedBlocks.remove(key);
+        if (removed != null) {
+            clearCrackOverlay(level, pos, removed.crackId());
+        }
     }
 
     public static void clearAll() {
@@ -155,17 +170,26 @@ public class BlockHPManager {
                 timeoutSeconds = ruleVal;
             }
         }
-        if (timeoutSeconds <= 0) {
-            return; // 0 或负数：关闭自愈，残血裂纹一直保留
-        }
 
+        final int effectiveTimeoutSec = timeoutSeconds;
         long now = System.currentTimeMillis();
-        long timeoutMs = timeoutSeconds * 1000L;
+        long timeoutMs = (effectiveTimeoutSec > 0) ? effectiveTimeoutSec * 1000L : Long.MAX_VALUE;
+
         damagedBlocks.entrySet().removeIf(entry -> {
             if (!entry.getKey().dimension().equals(level.dimension())) return false;
+            BlockPos p = entry.getKey().pos();
+            if (!level.isLoaded(p)) return false;
+
+            // 方块已被破坏（变成空气）或变成不可破坏方块 → 立即清理客户端裂纹并移出缓存
+            BlockState current = level.getBlockState(p);
+            if (current.isAir() || !isBreakable(current)) {
+                clearCrackOverlay(level, p, entry.getValue().crackId());
+                return true;
+            }
+
             DamageState ds = entry.getValue();
-            if (now - ds.lastHitTime() > timeoutMs) {
-                clearCrackOverlay(level, entry.getKey().pos(), ds.crackId());
+            if (effectiveTimeoutSec > 0 && now - ds.lastHitTime() > timeoutMs) {
+                clearCrackOverlay(level, p, ds.crackId());
                 return true;
             }
             return false;
