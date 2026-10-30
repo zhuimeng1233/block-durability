@@ -1,179 +1,152 @@
 # [BD][BDur] Block Durability (v2.0.0)
 
-给 Minecraft 方块加上耐久值——用枪械与爆炸打碎它们！
+给 Minecraft 方块增加耐久值，让枪械和爆炸可以逐步破坏它们。
 
-<p align="center">
-  <img src="assets/block-durability-explosion.gif" alt="Block Durability 2.0 重型爆炸破拆演示" width="720">
-</p>
+## 演示
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="assets/block-durability-explosion.gif" alt="重型爆炸破坏演示" width="100%">
+      <p align="center">重型爆炸破坏</p>
+    </td>
+    <td width="50%">
+      <img src="assets/block-durability-rpg.gif" alt="RPG 爆炸破坏演示" width="100%">
+      <p align="center">RPG 爆炸破坏</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="assets/block-durability-explosion-spray.gif" alt="连续爆炸破坏演示" width="100%">
+      <p align="center">连续爆炸破坏</p>
+    </td>
+    <td width="50%">
+      <img src="assets/block-durability-3x3x3-high-explosive.gif" alt="3x3x3 高爆弹破坏演示" width="100%">
+      <p align="center">3x3x3 高爆弹</p>
+    </td>
+  </tr>
+</table>
+
 <p align="center">
   <a href="assets/block-durability-demo.gif">
     <img src="assets/block-durability-demo.gif" alt="Block Durability 枪械射击破坏演示" width="720">
   </a>
 </p>
 
----
+## 爆炸耐久
 
-## 🚀 v2.0.0 重大更新日志 (What's New in v2.0.0)
+v2.0.0 的主分支面向 Minecraft 1.21.1 NeoForge，重点加入了爆炸与方块耐久的联动：
 
-> v2.0.0 是一次里程碑式的架构重构与特性飞跃，彻底解除了与 TaCZ 的硬绑定，全面引入了双轨制爆炸破坏系统，并消除了旧版所有的生命周期隐患：
+- **TaCZ 爆炸物**：RPG、榴弹等原本只造成冲击、不破坏地形的爆炸，会按距离对范围内白名单方块追加耐久伤害。
+- **原版及其他爆炸**：TNT、苦力怕、机械动力火炮等爆炸仍按原逻辑直接破坏方块；没有直接被炸碎的范围内白名单方块，会继续受到距离衰减的耐久伤害。
+- **掩体遮挡**：爆炸到方块之间的实心碰撞体会阻挡耐久伤害，减少隔墙波及。
+- **可配置**：爆炸伤害倍率、处理范围、原版爆炸兼容开关、方块 HP 和白名单都可以在服务端配置中调整。
 
-1. **💥 混合双轨制爆炸破坏（全新核心系统）**：
-   - **原版 TNT / 苦力怕等爆炸**：内圈威力区正常炸碎方块；外圈未能炸碎的高防爆方块，自动转入**基于距离线性衰减的耐久扣血**！
-   - **TaCZ 爆炸武器全面接管**：TaCZ 的 RPG、榴弹等默认不破坏地形（`KEEP` 模式），在 Block Durability 接管下，范围内所有白名单方块**全自动享受范围破拆扣血**！
-   - **物理视线遮挡（Raycast Occlusion）**：冲击波受实体掩体阻隔，躲在防爆掩体后的玻璃窗安全无恙，杜绝隔墙炸毁。
-2. **🛡️ TaCZ 独立解耦与纯净运行（Standalone Addon）**：
-   - 枪械命中监听独立封装为软依赖；未安装 TaCZ 时模组可作为**独立的原版/通用模组爆炸耐久 Addon** 稳定运行，绝不抛出任何类加载异常。
-3. **🪵 彻底摆脱 Mixin（零注入、零侵入）**：
-   - 完全删除旧版 `MixinBlockRayTrace`，改为官方标准数据包标签覆盖（覆写 TaCZ 的 `bullet_ignore` 标签并移除栅栏和栅栏门）。
-   - 彻底消除了不同 TaCZ 衍生构建版本（Reforged / Renovated 等）下的启动冲突崩溃隐患。
-4. **⏱️ 120 秒超时自愈与 GameRule 动态调整**：
-   - 残血方块未受伤害超时自愈时间提升至 **120 秒**。
-   - 新增游戏内管理员指令：`/gamerule blockDurabilityHealSeconds <秒数>`（支持随时动态调节，设为 `0` 则彻底关闭自愈）。
-5. **🧹 方块破坏与放置全生命周期闭环（解决幽灵裂纹）**：
-   - 新增监听原版方块破坏（`BreakEvent`）与放置（`EntityPlaceEvent`），以及心跳空气检测。
-   - 彻底解决了方块被玩家手动挖除或水冲推走后，原地放置新方块“继承旧裂纹/秒碎”的幽灵进度 Bug。
-6. **🤝 领地保护生态友好（Claim Protection）**：
-   - 命中事件监听优先级调整至 `EventPriority.LOWEST`，尊重领地、地皮、FTB Chunks 等圈地防破坏拦截。
-7. **⚡ 配置热重载与线程安全正则缓存**：
-   - 白名单通配符正则编译并加入缓存，在配置重载（`ModConfigEvent.Reloading`）时自动刷新缓存，杜绝非法数值/NaN 崩溃。
+> 只有加入白名单的方块才会受到这套耐久机制影响。实际破坏效果取决于方块硬度、HP 覆盖值、爆炸位置和配置倍率。
 
----
+## 黑曜石也能被炸开
 
-## 🌿 Git 分支与多版本架构
+黑曜石不再必须依赖原版“炸不掉”的规则。它的耐久值由硬度公式计算，不需要手动写死 150：
 
-Block Durability 采用多分支结构维护不同 Minecraft 与模组加载器版本：
+```text
+方块 HP = max(minBlockHP, 方块原版硬度 × hardnessMultiplier)
+```
 
-| 分支名 | 目标游戏版本 | 模组加载器 | 分支定位 | 对应依赖 |
-| :--- | :--- | :--- | :--- | :--- |
-| **`master`** | **Minecraft 1.21.1** | **NeoForge** (>= 21.1.80) | **主开发分支（默认）** | TaCZ 1.1.6 ~ 1.1.8+（可选） |
-| **`forge-1.20.1`** | Minecraft 1.20.1 | MinecraftForge (>= 47.3.0) | 移植与长期维护分支 | TaCZ 1.0.2 ~ 1.1.8+（可选） |
-| **`neoforge-1.21.11`** | Minecraft 1.21.11 | NeoForge (>= 21.11.48) | 社区 CalVer 前瞻分支 | TaCZ 1.21.11 移植版（可选） |
+黑曜石的原版硬度是 `50`。把它加入白名单，并将 `hardnessMultiplier` 设为 `3.0`：
 
----
+```toml
+[whitelist]
+blockWhitelist = [
+    "minecraft:obsidian"
+]
 
-## 依赖与运行环境
+[hp_calculation]
+minBlockHP = 1.0
+hardnessMultiplier = 3.0
+blockHPOverrides = []
+```
 
-- **运行平台**：NeoForge 1.21.1 (推荐 NeoForge 21.1.80 或更高版本)
-- **可选依赖**：[TaCZ](https://modrinth.com/mod/tacz-1.21.1) (Timeless & Classics Guns: Zero, NeoForge 移植版) 1.1.6 - 1.1.8+
-  > **独立运行说明**：TaCZ 为可选软依赖。若未安装 TaCZ，Block Durability 可作为纯净的原版/模组**爆炸范围耐久 Addon** 独立运行。
+代入公式后，黑曜石 HP 为 `max(1.0, 50 × 3.0) = 150`。在这样的耐久设置下，大约需要 **20～30 发机械动力火炮的高爆弹**才能击穿黑曜石。具体数量会受到命中位置、爆炸范围、伤害倍率和其他配置影响，可按服务器节奏继续调整。
 
----
+## 兼容版本
 
-## 默认支持的方块类型
+| 分支 | Minecraft | 加载器 | 定位 |
+| :--- | :--- | :--- | :--- |
+| `master` | 1.21.1 | NeoForge | 当前主开发分支 |
+| `forge-1.20.1` | 1.20.1 | MinecraftForge | 长期维护分支 |
 
-| 类别 | 格式 / Tag / ID |
-|---|---|
-| 玻璃与玻璃板 | `tag:c:glass_blocks`, `tag:c:glass_panes` |
-| 木板、原木与树叶 | `tag:minecraft:planks`, `tag:minecraft:logs`, `tag:minecraft:leaves` |
-| 木门与木活板门 | `tag:minecraft:wooden_doors`, `tag:minecraft:wooden_trapdoors` |
-| 栅栏与栅栏门 | `tag:minecraft:fences`, `tag:minecraft:fence_gates` |
-| 楼梯、台阶与红石配件 | `tag:minecraft:wooden_stairs`, `tag:minecraft:wooden_slabs`, `tag:minecraft:wooden_buttons`, `tag:minecraft:wooden_pressure_plates` |
-| 告示牌与吊挂告示牌 | `tag:minecraft:standing_signs`, `tag:minecraft:ceiling_hanging_signs` 等 |
-| 地表与基础方块 | 可在配置中随意追加，如 `minecraft:grass_block`, `minecraft:dirt`, `minecraft:stone`, `minecraft:cobblestone`, `minecraft:obsidian` 等 |
+主分支要求 NeoForge 21.1.80 或更高版本。[TaCZ](https://modrinth.com/mod/tacz-1.21.1) 为可选依赖；未安装时，模组仍可处理原版及其他模组的爆炸耐久。
 
----
+## 基本配置
 
-## 配置文件说明
-
-配置文件位于服务端的 `config/blockdurability-common.toml`：
+配置文件位于服务端 `config/blockdurability-common.toml`。常用项如下：
 
 ```toml
 [general]
-    # 是否启用模组功能
-    enabled = true
-    # 每发子弹命中的固定伤害值
-    damagePerHit = 1.0
-    # 是否使用 TaCZ 子弹实体的真实伤害数值（设为 true 时 damagePerHit 失效）
-    useBulletDamage = false
-    # 子弹伤害倍率
-    bulletDamageMultiplier = 1.0
-
-[whitelist]
-    # 允许被枪械与爆炸破坏的方块列表
-    # 支持三种格式：
-    #   1. tag: 前缀（如 "tag:minecraft:planks"，推荐，自动兼容其他模组木头）
-    #   2. 精确方块 ID（如 "minecraft:grass_block"）
-    #   3. 通配符模式（如 "minecraft:*stained_glass"）
-    blockWhitelist = [
-        "tag:c:glass_blocks",
-        "tag:c:glass_panes",
-        "tag:minecraft:planks",
-        "tag:minecraft:logs",
-        "tag:minecraft:leaves",
-        "tag:minecraft:wooden_doors",
-        "tag:minecraft:wooden_trapdoors",
-        "tag:minecraft:fences",
-        "tag:minecraft:fence_gates",
-        "tag:minecraft:wooden_stairs",
-        "tag:minecraft:wooden_slabs",
-        "tag:minecraft:wooden_buttons",
-        "tag:minecraft:wooden_pressure_plates",
-        "tag:minecraft:standing_signs",
-        "tag:minecraft:wall_signs",
-        "tag:minecraft:ceiling_hanging_signs",
-        "tag:minecraft:wall_hanging_signs"
-    ]
-
-[hp_calculation]
-    # 方块血量计算公式：HP = max(minBlockHP, 方块原版硬度 * hardnessMultiplier)
-    hardnessMultiplier = 1.5
-    # 方块最低血量保底
-    minBlockHP = 1.0
-    # 手动指定特定方块的固定血量覆盖，优先级最高（格式：["minecraft:obsidian=50.0"]）
-    blockHPOverrides = []
+enabled = true
+damagePerHit = 1.0
+useBulletDamage = false
+bulletDamageMultiplier = 1.0
 
 [explosion]
-    # 是否启用爆炸范围耐久伤害
-    enabled = true
-    # 爆炸耐久伤害倍率
-    damageMultiplier = 1.0
-    # 爆炸扫描半径上限（米），防止超大爆炸卡顿
-    maxRadius = 16.0
-    # 是否接管原版 TNT/苦力怕未炸毁方块的波及扣血
-    handleVanillaExplosions = true
+enabled = true
+damageMultiplier = 1.0
+maxRadius = 16.0
+handleVanillaExplosions = true
 
 [healing]
-    # 受损方块未继续受损时的自愈冷却时间（秒，0 代表完全禁用自愈）
-    # 游戏内亦可通过 /gamerule blockDurabilityHealSeconds 动态调整
-    healTimeoutSeconds = 120
-
-[effects]
-    # 方块碎裂时是否生成破坏粒子
-    spawnBreakParticles = true
-    # 方块受损与崩解时是否播放音效
-    playBreakSound = true
-    # 方块被枪械/爆炸打碎后是否掉落物品
-    dropItems = false
+healTimeoutSeconds = 120
 ```
 
----
+- `damageMultiplier`：爆炸耐久伤害倍率。
+- `maxRadius`：一次爆炸最多扫描的半径，用于限制大型爆炸的额外开销。
+- `handleVanillaExplosions`：是否处理 TNT、苦力怕等非 TaCZ 爆炸。
+- `healTimeoutSeconds`：受损方块停止受伤后恢复的时间，设为 `0` 可关闭自愈。
 
-## 游戏内指令
+白名单支持方块 Tag、精确 ID 和 `*` 通配符：
 
-- **修改自动恢复冷却秒数**：
-  ```
-  /gamerule blockDurabilityHealSeconds <秒数>
-  ```
-  *例：`/gamerule blockDurabilityHealSeconds 60`（设为 60 秒）；设为 `0` 代表彻底禁用自愈。*
+```toml
+[whitelist]
+blockWhitelist = [
+    "tag:minecraft:planks",
+    "tag:minecraft:logs",
+    "minecraft:obsidian",
+    "minecraft:*glass"
+]
+```
 
----
+方块最大 HP 默认按原版硬度计算。`blockHPOverrides` 只用于给个别方块指定固定值，正常情况下留空即可：
 
-## 构建与测试
+```toml
+[hp_calculation]
+hardnessMultiplier = 1.5
+minBlockHP = 1.0
+blockHPOverrides = []
+```
 
-需要 JDK 21 环境：
+如果确实需要覆盖某个方块的计算结果，可以按 `"minecraft:block_id=数值"` 的格式添加条目。
+
+## 游戏内规则
+
+管理员可以动态调整受损方块的恢复时间：
+
+```text
+/gamerule blockDurabilityHealSeconds <秒数>
+```
+
+例如 `/gamerule blockDurabilityHealSeconds 60` 表示 60 秒后恢复，设为 `0` 表示关闭自愈。
+
+## 构建
+
+需要 JDK 21：
 
 ```bash
-# 构建 JAR
 ./gradlew build
-
-# 运行自动化单元测试
 ./gradlew test
 ```
 
 构建产物位于 `build/libs/blockdurability-2.0.0-neoforge.jar`。
 
----
-
-## 📜 许可证
+## 许可证
 
 本项目基于 [MIT 许可证](LICENSE) 开源。
