@@ -68,7 +68,7 @@
 | **事件总线** | `MinecraftForge.EVENT_BUS` | `NeoForge.EVENT_BUS` | `NeoForge.EVENT_BUS` |
 | **Tick 监听** | `TickEvent.LevelTickEvent` (需判断 `Phase.END`) | `LevelTickEvent.Post` | `LevelTickEvent.Post` |
 | **爆炸位置** | `explosion.getPosition()` | `explosion.center()` | `explosion.center()` |
-| **爆炸半径** | 反射获取 `Explosion.radius` (`f_46014_`) | `explosion.radius()` | `explosion.radius()` |
+| **爆炸半径** | 反射获取 `Explosion.radius` (`f_46017_`，唯一 float 字段) | `explosion.radius()` | `explosion.radius()` |
 | **射线上下文** | `ClipContext(..., null)` 或 `CollisionContext.empty()` | 必须使用 `CollisionContext.empty()` | 必须使用 `CollisionContext.empty()` |
 | **数据包 Tag** | `tags/blocks/bullet_ignore.json` (复数) | `tags/block/bullet_ignore.json` (单数) | `tags/block/bullet_ignore.json` (单数) |
 
