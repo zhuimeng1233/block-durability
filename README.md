@@ -3,8 +3,11 @@
 给 Minecraft 方块加上耐久值——用枪械与爆炸打碎它们！
 
 <p align="center">
+  <img src="assets/block-durability-explosion.gif" alt="Block Durability 2.0 重型爆炸破拆演示" width="720">
+</p>
+<p align="center">
   <a href="assets/block-durability-demo.gif">
-    <img src="assets/block-durability-demo.gif" alt="Block Durability Forge 1.20.1 游戏内演示" width="720">
+    <img src="assets/block-durability-demo.gif" alt="Block Durability 枪械射击破坏演示" width="720">
   </a>
 </p>
 
