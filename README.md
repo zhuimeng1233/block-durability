@@ -8,7 +8,33 @@
   </a>
 </p>
 
-> 📌 **分支定位**：此分支为 **Forge 1.20.1** 长期维护分支。主开发分支（NeoForge 1.21.1）见 [`master`](https://github.com/zhuimeng1233/block-durability/tree/master) 分支。
+> 📌 **分支定位**：此分支为 **Forge 1.20.1** 长期维护分支。核心主开发分支（NeoForge 1.21.1）见 [`master`](https://github.com/zhuimeng1233/block-durability/tree/master) 分支。
+
+---
+
+## 🚀 v2.0.0 重大更新日志 (What's New in v2.0.0)
+
+> v2.0.0 是里程碑式的跨版本架构升级，将 1.21.1 的全部新架构完整移植至 1.20.1 Forge：
+
+1. **💥 混合双轨制爆炸破坏（全新核心系统）**：
+   - **原版 TNT / 苦力怕等爆炸**：内圈威力区正常炸碎方块；外圈未能炸碎的高防爆方块，自动转入**基于距离线性衰减的耐久扣血**！
+   - **TaCZ 爆炸武器全面接管**：TaCZ 的 RPG、榴弹等默认不破坏地形（`KEEP` 模式），在 Block Durability 接管下，范围内所有白名单方块**全自动享受范围破拆扣血**！
+   - **物理视线遮挡（Raycast Occlusion）**：冲击波受实体掩体阻隔，躲在防爆掩体后的玻璃窗安全无恙，杜绝隔墙炸毁。
+2. **🛡️ TaCZ 独立解耦与纯净运行（Standalone Addon）**：
+   - 枪械命中监听独立封装为软依赖；未安装 TaCZ 时模组可作为**独立的原版/通用模组爆炸耐久 Addon** 稳定运行，绝不抛出任何类加载异常。
+3. **🪵 彻底摆脱 Mixin（零注入、零侵入）**：
+   - 完全删除旧版 `MixinBlockRayTrace`，改为官方标准数据包标签覆盖（覆写 TaCZ 的 `bullet_ignore` 标签并移除栅栏和栅栏门）。
+   - 彻底消除了不同 TaCZ 衍生构建版本下的启动冲突崩溃隐患。
+4. **⏱️ 120 秒超时自愈与 GameRule 动态调整**：
+   - 残血方块未受伤害超时自愈时间提升至 **120 秒**。
+   - 新增游戏内管理员指令：`/gamerule blockDurabilityHealSeconds <秒数>`（支持随时动态调节，设为 `0` 则彻底关闭自愈）。
+5. **🧹 方块破坏与放置全生命周期闭环（解决幽灵裂纹）**：
+   - 新增监听原版方块破坏（`BreakEvent`）与放置（`EntityPlaceEvent`），以及心跳空气检测。
+   - 彻底解决了方块被玩家手动挖除或水冲推走后，原地放置新方块“继承旧裂纹/秒碎”的幽灵进度 Bug。
+6. **🤝 领地保护生态友好（Claim Protection）**：
+   - 命中事件监听优先级调整至 `EventPriority.LOWEST`，尊重领地、地皮、FTB Chunks 等圈地防破坏拦截。
+7. **⚡ 配置热重载与线程安全正则缓存**：
+   - 白名单通配符正则编译并加入缓存，在配置重载（`ModConfigEvent.Reloading`）时自动刷新缓存，杜绝非法数值/NaN 崩溃。
 
 ---
 
@@ -16,31 +42,21 @@
 
 - **运行平台**：Minecraft Forge 1.20.1 (推荐 Forge 47.3.0 或更高版本)
 - **可选依赖**：[TaCZ](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero) (Timeless & Classics Guns: Zero, Forge 版) 1.0.2 - 1.1.8+
-  > **独立运行声明**：TaCZ 为**可选软依赖**。若未安装 TaCZ，Block Durability 可作为纯净的原版/模组**爆炸范围耐久 Addon** 独立运行，不抛出任何类加载异常。
+  > **独立运行声明**：TaCZ 为可选软依赖。若未安装 TaCZ，Block Durability 可作为纯净的原版/模组**爆炸范围耐久 Addon** 独立运行。
 
 ---
 
-## ✨ 核心特性 (v2.0.0)
+## 默认支持的方块类型
 
-- **💥 混合双轨制爆炸破坏（v2.0.0 重磅）**：
-  - **TNT / 苦力怕等爆炸**：原版能够直接摧毁的内圈方块继续正常摧毁；外圈或高防爆未被摧毁的方块，自动转为**线性距离衰减的耐久扣血**！
-  - **TaCZ 爆炸武器无缝破拆**：TaCZ 的 RPG、榴弹等爆炸物默认不炸方块（`BlockInteraction.KEEP`），在 Block Durability 接管下，爆炸范围内的所有白名单方块将**全自动享受范围耐久破拆**！
-  - **物理视线遮挡（Raycast Occlusion）**：采用轻量级碰撞箱光线投射算法，实体掩体后方的方块受到阻隔保护，不会发生隔墙炸毁。
-- **🔫 枪械射击破坏**：
-  - 子弹击中白名单方块扣除对应耐久，支持固定伤害或子弹实体伤害（`useBulletDamage`）。
-  - 事件监听采用 `EventPriority.LOWEST`，尊重领地、地皮、FTB Chunks 等保护插件与模组的防破坏判断。
-- **🪵 原生栅栏与门穿透支持（零 Mixin）**：
-  - 通过数据包覆盖 `data/tacz/tags/blocks/bullet_ignore.json`，解决原版栅栏和栅栏门被 TaCZ 无视穿透的问题。
-  - 彻底移除了旧版侵入式 Mixin，零冲突、启动零风险。
-- **⏱️ 超时自愈机制与 GameRule 动态控制**：
-  - 方块受损后在一定时间内未再次受损，将自动自愈并清除开裂视觉效果，避免长期缓存占用内存。
-  - 默认自愈时间提升至 **120 秒**。
-  - 提供游戏内管理员 GameRule：`/gamerule blockDurabilityHealSeconds <秒数>`（支持随时动态调节，设为 `0` 则彻底关闭自愈）。
-- **🎨 细腻视听反馈**：
-  - 方块受损时按比例显示 Minecraft 原版 10 级破坏裂纹（0-9 阶段）。
-  - 受损播放方块打击粒子与声音，碎裂崩解时生成方块破坏特效与音效。
-- **🛡️ 线程安全与热重载**：
-  - 白名单通配符正则编译缓存化，在配置重载（`ModConfigEvent.Reloading`）时自动刷新缓存，保障高射速多线程下的稳定性。
+| 类别 | 格式 / Tag / ID |
+|---|---|
+| 玻璃与玻璃板 | `tag:c:glass_blocks`, `tag:c:glass_panes` |
+| 木板、原木与树叶 | `tag:minecraft:planks`, `tag:minecraft:logs`, `tag:minecraft:leaves` |
+| 木门与木活板门 | `tag:minecraft:wooden_doors`, `tag:minecraft:wooden_trapdoors` |
+| 栅栏与栅栏门 | `tag:minecraft:fences`, `tag:minecraft:fence_gates` |
+| 楼梯、台阶与红石配件 | `tag:minecraft:wooden_stairs`, `tag:minecraft:wooden_slabs`, `tag:minecraft:wooden_buttons`, `tag:minecraft:wooden_pressure_plates` |
+| 告示牌与吊挂告示牌 | `tag:minecraft:standing_signs`, `tag:minecraft:ceiling_hanging_signs` 等 |
+| 地表与基础方块 | 可在配置中随意追加，如 `minecraft:grass_block`, `minecraft:dirt`, `minecraft:stone`, `minecraft:cobblestone`, `minecraft:obsidian` 等 |
 
 ---
 
