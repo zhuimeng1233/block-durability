@@ -15,7 +15,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **MC 1.21.1** | **NeoForge**<br>(>= 21.1.80) | `E:\Gnew\block-durability` | **`master`** | **核心主开发分支（默认）** | `build/libs/blockdurability-2.0.0-neoforge.jar` |
 | **MC 1.20.1** | **Forge**<br>(47.3.0) | `E:\New\MC\block-durability-forge-1.20.1` | `forge-1.20.1` | 长期维护分支 (Worktree) | `build/libs/blockdurability-1.20.1-2.0.0-forge.jar` |
-| **MC 1.21.11** | **NeoForge**<br>(21.11.48) | `E:\Gnew\block-durability` | `neoforge-1.21.11` | 社区 CalVer 前瞻分支 | `build/libs/blockdurability-1.21.11-1.2.0-neoforge.jar` |
+| **MC 1.21.11** | **NeoForge**<br>(21.11.48) | `E:\Gnew\block-durability` | `neoforge-1.21.11` | 本地实验分支，不发布、不推送、不打标签 | 仅本地试验产物 |
 
 > 📌 **主分支说明**：`master` 分支代表当前官方生态活跃度最高的 **Minecraft 1.21.1 (NeoForge)** 版本，所有全新重大架构特性（如 v2.0.0 爆炸系统）均首先在此验证并发布，随后向各移植分支反向回移植。
 
@@ -66,7 +66,7 @@
 
 在向其他分支移植时，请注意以下关键 API 差异：
 
-| 差异项 | MC 1.20.1 (Forge) | MC 1.21.1 (NeoForge) | MC 1.21.11 (NeoForge) |
+| 差异项 | MC 1.20.1 (Forge) | MC 1.21.1 (NeoForge) | MC 1.21.11 (本地实验，不发布) |
 | :--- | :--- | :--- | :--- |
 | **Java 工具链** | Java 17 | Java 21 | Java 21 |
 | **事件总线** | `MinecraftForge.EVENT_BUS` | `NeoForge.EVENT_BUS` | `NeoForge.EVENT_BUS` |
@@ -101,6 +101,8 @@ git checkout forge-1.20.1
 ## 5. Git 远端与分支规范
 
 - **默认主分支**：`master` (即 1.21.1 NeoForge)。
+- **发布范围**：仅发布 `master` (MC 1.21.1 NeoForge) 与 `forge-1.20.1` (MC 1.20.1 Forge)。
+- **禁止发布**：`neoforge-1.21.11` 仅作本地实验，不推送到公开远端，也不创建发布标签。
 - **同步推送指令**：
 ```powershell
 git -C "E:\Gnew\block-durability" push origin master
