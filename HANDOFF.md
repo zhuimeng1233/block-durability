@@ -56,6 +56,10 @@
 - **机制**：通配符白名单采用预编译正则表达式缓存 (`compiledPatterns`)，监听 `ModConfigEvent.Loading` 和 `ModConfigEvent.Reloading` 自动调用 `invalidateCache()` 刷新缓存。
 - **健壮性**：严格校验 `Float.isFinite`、非空 Tag ID，杜绝 NaN / 异常数值导致的数据损坏。
 
+### 2.7 挖掘与放置生命周期状态闭环 (Block Lifecycle Cleanup)
+- **机制**：监听 `BlockEvent.BreakEvent` 与 `BlockEvent.EntityPlaceEvent`，以及定时扫描空气方块。
+- **作用**：当残血方块被玩家手动挖掘、物理推走或水流冲毁后，立即广播 `-1` 进度包清除客户端破坏裂纹并移除服务端缓存，彻底根除原地放新方块“继承旧裂纹/秒碎”的幽灵状态 Bug。
+
 ---
 
 ## 3. 跨版本核心代码适配差异表
