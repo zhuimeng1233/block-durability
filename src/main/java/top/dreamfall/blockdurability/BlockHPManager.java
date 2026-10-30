@@ -136,7 +136,22 @@ public class BlockHPManager {
     }
 
     public static void onBlockRemoved(Level level, BlockPos pos) {
-        damagedBlocks.remove(new BlockKey(level.dimension(), pos));
+        if (level instanceof ServerLevel serverLevel) {
+            clearBlock(serverLevel, pos);
+        } else {
+            damagedBlocks.remove(new BlockKey(level.dimension(), pos));
+        }
+    }
+
+    /**
+     * 清理指定位置的受损状态，并向附近玩家同步清除破坏裂纹。
+     */
+    public static void clearBlock(ServerLevel level, BlockPos pos) {
+        BlockKey key = new BlockKey(level.dimension(), pos.immutable());
+        DamageState removed = damagedBlocks.remove(key);
+        if (removed != null) {
+            clearCrackOverlay(level, pos, removed.crackId());
+        }
     }
 
     public static void clearAll() {
@@ -144,21 +159,31 @@ public class BlockHPManager {
     }
 
     /**
-     * 定时自愈与内存清理：超过配置秒数未受伤害的残血方块清除裂纹并回收内存。
+     * 定时自愈与内存清理：
+     * 1. 若方块已被外部挖除或变为空气/非白名单，立即清除裂纹与状态；
+     * 2. 若超过配置秒数未受伤害，清除裂纹并回收内存。
      */
     public static void tick(ServerLevel level) {
         long now = System.currentTimeMillis();
         int ruleSeconds = level.getGameRules().getInt(BlockDurability.RULE_HEAL_TIMEOUT_SECONDS);
         int timeoutSec = ruleSeconds >= 0 ? ruleSeconds : BlockHPConfig.HEAL_TIMEOUT_SECONDS.get();
-        if (timeoutSec <= 0) {
-            return;
-        }
-        long timeoutMs = timeoutSec * 1000L;
+        long timeoutMs = (timeoutSec > 0) ? timeoutSec * 1000L : Long.MAX_VALUE;
+
         damagedBlocks.entrySet().removeIf(entry -> {
             if (!entry.getKey().dimension().equals(level.dimension())) return false;
+            BlockPos p = entry.getKey().pos();
+            if (!level.isLoaded(p)) return false;
+
+            // 方块已被破坏（变成空气）或变成不可破坏方块 → 立即清理客户端裂纹并移出缓存
+            BlockState current = level.getBlockState(p);
+            if (current.isAir() || !isBreakable(current)) {
+                clearCrackOverlay(level, p, entry.getValue().crackId());
+                return true;
+            }
+
             DamageState ds = entry.getValue();
-            if (now - ds.lastHitTime() > timeoutMs) {
-                clearCrackOverlay(level, entry.getKey().pos(), ds.crackId());
+            if (timeoutSec > 0 && now - ds.lastHitTime() > timeoutMs) {
+                clearCrackOverlay(level, p, ds.crackId());
                 return true;
             }
             return false;
