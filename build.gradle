@@ -44,6 +44,7 @@ minecraft {
 }
 
 repositories {
+    mavenCentral()
     maven {
         name = "Curse Maven"
         url = "https://www.cursemaven.com"
@@ -57,9 +58,15 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${tacz_version}")
 
-    // Mixin
-    implementation 'org.spongepowered:mixin:0.8.5'
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+sourceSets {
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
 }
 
 tasks.register('sourcesJar', Jar) {
@@ -69,7 +76,8 @@ tasks.register('sourcesJar', Jar) {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs += [
-        '-Amixin.refmap=blockdurability.refmap.json'
-    ]
+}
+
+test {
+    useJUnitPlatform()
 }

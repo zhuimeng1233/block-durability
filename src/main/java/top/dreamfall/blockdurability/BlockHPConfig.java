@@ -1,5 +1,6 @@
 package top.dreamfall.blockdurability;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -35,9 +36,17 @@ public class BlockHPConfig {
     public static ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCK_HP_OVERRIDES;
 
     // ========================
-    // Mixin 控制
+    // 爆炸范围破坏
     // ========================
-    public static ForgeConfigSpec.BooleanValue FIX_BULLET_IGNORE;
+    public static ForgeConfigSpec.BooleanValue EXPLOSION_ENABLED;
+    public static ForgeConfigSpec.DoubleValue EXPLOSION_DAMAGE_MULTIPLIER;
+    public static ForgeConfigSpec.DoubleValue EXPLOSION_MAX_RADIUS;
+    public static ForgeConfigSpec.BooleanValue HANDLE_VANILLA_EXPLOSIONS;
+
+    // ========================
+    // 自愈与生命周期
+    // ========================
+    public static ForgeConfigSpec.IntValue HEAL_TIMEOUT_SECONDS;
 
     // ========================
     // 特效
@@ -67,22 +76,19 @@ public class BlockHPConfig {
         BULLET_DAMAGE_MULTIPLIER = builder
                 .comment("Multiplier when useBulletDamage is true")
                 .defineInRange("bulletDamageMultiplier", 1.0, 0.0, 100.0);
-        FIX_BULLET_IGNORE = builder
-                .comment("Fix TaCZ bullet_ignore tag so fences and fence gates can be hit by bullets")
-                .define("fixBulletIgnore", true);
         builder.pop();
 
         builder.push("whitelist");
         BLOCK_WHITELIST = builder
                 .comment(
-                        "Whitelist: only blocks matching these patterns can be damaged by bullets.",
-                        "Two formats supported:",
+                        "Whitelist: only blocks matching these patterns can be damaged by bullets and explosions.",
+                        "Three formats supported:",
                         "  \"tag:namespace:path\"  → Block tag matching (auto-compatible with all mods!)",
                         "  \"modid:block_id\"     → Exact name match",
                         "  \"modid:*pattern*\"    → Wildcard name match",
                         "Blocks NOT in this list will ignore bullet damage entirely.",
                         "",
-                        "Default covers: glass, wood planks, logs, wooden doors/trapdoors/fences, leaves"
+                        "Default covers: glass, wood planks, logs, wooden doors/trapdoors/fences"
                 )
                 .defineListAllowEmpty("blockWhitelist",
                         Arrays.asList(
@@ -115,7 +121,7 @@ public class BlockHPConfig {
                                 "tag:minecraft:ceiling_hanging_signs",
                                 "tag:minecraft:wall_hanging_signs"
                         ),
-                        obj -> obj instanceof String && !((String) obj).isEmpty());
+                        BlockHPConfig::isValidWhitelistEntry);
         builder.pop();
 
         builder.push("hp_calculation");
@@ -143,7 +149,32 @@ public class BlockHPConfig {
                         "  \"minecraft:*glass*=1\"    - force all glass to 1 HP"
                 )
                 .defineListAllowEmpty("blockHPOverrides", Arrays.asList(),
-                        obj -> obj instanceof String && ((String) obj).contains("="));
+                        BlockHPConfig::isValidHpOverride);
+        builder.pop();
+
+        builder.push("explosion");
+        EXPLOSION_ENABLED = builder
+                .comment("Whether explosions (TaCZ explosives, TNT, Creepers) deal AoE durability damage to blocks")
+                .define("enabled", true);
+        EXPLOSION_DAMAGE_MULTIPLIER = builder
+                .comment("Damage multiplier for explosion AoE damage")
+                .defineInRange("damageMultiplier", 1.0, 0.0, 100.0);
+        EXPLOSION_MAX_RADIUS = builder
+                .comment("Maximum explosion scan radius (in blocks) to prevent lag from huge custom explosions")
+                .defineInRange("maxRadius", 16.0, 1.0, 64.0);
+        HANDLE_VANILLA_EXPLOSIONS = builder
+                .comment("Whether to handle vanilla explosions (TNT, Creepers, etc.) that did not break blocks directly")
+                .define("handleVanillaExplosions", true);
+        builder.pop();
+
+        builder.push("healing");
+        HEAL_TIMEOUT_SECONDS = builder
+                .comment(
+                        "Seconds of inactivity before a damaged block auto-heals and removes crack visuals.",
+                        "Can also be changed dynamically in-game via: /gamerule blockDurabilityHealSeconds <seconds>.",
+                        "Set to 0 to completely disable auto-healing."
+                )
+                .defineInRange("healTimeoutSeconds", 120, 0, 86400);
         builder.pop();
 
         builder.push("effects");
@@ -159,6 +190,33 @@ public class BlockHPConfig {
         builder.pop();
 
         return new Config();
+    }
+
+    public static boolean isValidWhitelistEntry(Object obj) {
+        if (!(obj instanceof String str)) return false;
+        String trimmed = str.trim();
+        if (trimmed.isEmpty()) return false;
+        if (trimmed.startsWith("tag:")) {
+            String tagId = trimmed.substring(4).trim();
+            if (tagId.isEmpty()) return false;
+            ResourceLocation rl = ResourceLocation.tryParse(tagId);
+            return rl != null && !rl.getPath().isEmpty();
+        }
+        return true;
+    }
+
+    public static boolean isValidHpOverride(Object obj) {
+        if (!(obj instanceof String str)) return false;
+        String[] parts = str.split("=", 2);
+        if (parts.length != 2) return false;
+        String key = parts[0].trim();
+        if (key.isEmpty()) return false;
+        try {
+            float hp = Float.parseFloat(parts[1].trim());
+            return Float.isFinite(hp) && hp > 0f;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public static class Config {}

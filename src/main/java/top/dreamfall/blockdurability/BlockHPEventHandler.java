@@ -1,63 +1,126 @@
 package top.dreamfall.blockdurability;
 
-import com.tacz.guns.api.event.server.AmmoHitBlockEvent;
-import com.tacz.guns.entity.EntityKineticBullet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.level.ChunkEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * 监听 AmmoHitBlockEvent，对白名单内的方块造成耐久伤害。
- * 同时监听定时与卸载事件，管理方块耐久状态的生命周期。
+ * 核心事件处理器：监听爆炸（全模组通用 + TaCZ 爆炸）、自愈与区块生命周期。
+ * 不依赖任何 TaCZ 特有类，无 TaCZ 时亦可独立稳健运行。
  */
 public class BlockHPEventHandler {
 
-    @SubscribeEvent
-    public void onAmmoHitBlock(AmmoHitBlockEvent event) {
-        if (!BlockHPConfig.ENABLED.get()) return;
+    private static Field explosionRadiusField = null;
+    private static boolean fieldSearched = false;
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        if (!BlockHPConfig.ENABLED.get() || !BlockHPConfig.EXPLOSION_ENABLED.get()) return;
 
         Level level = event.getLevel();
         if (!(level instanceof ServerLevel serverLevel)) return;
 
-        BlockPos pos = event.getHitResult().getBlockPos();
-        BlockState state = event.getState();
+        Explosion explosion = event.getExplosion();
+        Entity directSource = explosion.getDirectSourceEntity();
 
-        // 不在白名单 → 什么都不做，TACZ 原逻辑照常（弹孔等）
-        if (!BlockHPManager.isBreakable(state)) return;
-
-        EntityKineticBullet bullet = event.getAmmo();
-        Vec3 hitVec = event.getHitResult().getLocation();
-
-        // --- 计算本次伤害 ---
-        float damage;
-        if (BlockHPConfig.USE_BULLET_DAMAGE.get()) {
-            damage = bullet.getDamage(hitVec)
-                    * BlockHPConfig.BULLET_DAMAGE_MULTIPLIER.get().floatValue();
-        } else {
-            damage = BlockHPConfig.DAMAGE_PER_HIT.get().floatValue();
+        // 识别是否为 TaCZ 爆炸
+        boolean isTacz = isTaczExplosion(directSource, explosion);
+        if (!isTacz && !BlockHPConfig.HANDLE_VANILLA_EXPLOSIONS.get()) {
+            return;
         }
-        if (damage <= 0) return;
 
-        // --- 造成伤害 ---
-        Optional<Float> remaining = BlockHPManager.damageBlock(level, pos, state, damage);
+        Vec3 center = explosion.getPosition();
+        float radius = getExplosionRadius(explosion);
+        float maxRadius = BlockHPConfig.EXPLOSION_MAX_RADIUS.get().floatValue();
+        float effectiveRadius = Math.min(radius, maxRadius);
+        if (effectiveRadius <= 0f) return;
 
-        if (remaining.isEmpty()) {
-            // 方块已破坏
-            spawnBreakEffects(serverLevel, pos, state);
-        } else if (remaining.get() > 0) {
-            // 还在，打击反馈
-            float ratio = 1f - (remaining.get() / BlockHPManager.getMaxHP(state));
-            spawnHitEffects(serverLevel, pos, state, hitVec, ratio);
+        // 原版已被选定直接摧毁的方块集合（双轨制：原版该炸掉的维持原版行为）
+        List<BlockPos> affectedBlocks = event.getAffectedBlocks();
+        Set<BlockPos> vanillaDestroyed = new HashSet<>(affectedBlocks);
+
+        int minX = (int) Math.floor(center.x - effectiveRadius);
+        int maxX = (int) Math.ceil(center.x + effectiveRadius);
+        int minY = Math.max(serverLevel.getMinBuildHeight(), (int) Math.floor(center.y - effectiveRadius));
+        int maxY = Math.min(serverLevel.getMaxBuildHeight(), (int) Math.ceil(center.y + effectiveRadius));
+        int minZ = (int) Math.floor(center.z - effectiveRadius);
+        int maxZ = (int) Math.ceil(center.z + effectiveRadius);
+
+        float multiplier = BlockHPConfig.EXPLOSION_DAMAGE_MULTIPLIER.get().floatValue();
+        float baseDamage = effectiveRadius * 4.0f * multiplier;
+
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    cursor.set(x, y, z);
+                    // 已被原版炸掉的，不需要重复扣耐久
+                    if (vanillaDestroyed.contains(cursor)) continue;
+
+                    double dx = (x + 0.5) - center.x;
+                    double dy = (y + 0.5) - center.y;
+                    double dz = (z + 0.5) - center.z;
+                    double distSq = dx * dx + dy * dy + dz * dz;
+                    if (distSq > effectiveRadius * effectiveRadius) continue;
+
+                    BlockState state = serverLevel.getBlockState(cursor);
+                    if (state.isAir()) continue;
+                    if (!BlockHPManager.isBreakable(state)) continue;
+
+                    // 视线阻挡检测（如果隔着未破坏的实心厚掩体，阻挡冲击波）
+                    Vec3 targetCenter = new Vec3(x + 0.5, y + 0.5, z + 0.5);
+                    BlockHitResult hit = serverLevel.clip(new ClipContext(
+                            center,
+                            targetCenter,
+                            ClipContext.Block.COLLIDER,
+                            ClipContext.Fluid.NONE,
+                            null
+                    ));
+                    if (hit.getType() != HitResult.Type.MISS
+                            && !hit.getBlockPos().equals(cursor)
+                            && !vanillaDestroyed.contains(hit.getBlockPos())) {
+                        continue;
+                    }
+
+                    double dist = Math.sqrt(distSq);
+                    // 线性距离衰减
+                    float falloff = (float) Math.max(0.0f, 1.0f - (dist / effectiveRadius));
+                    float damage = baseDamage * falloff;
+                    if (!Float.isFinite(damage) || damage <= 0.1f) continue;
+
+                    BlockPos immutablePos = cursor.immutable();
+                    Optional<Float> remaining = BlockHPManager.damageBlock(serverLevel, immutablePos, state, damage);
+                    if (remaining.isEmpty()) {
+                        spawnBreakEffects(serverLevel, immutablePos, state);
+                    } else if (remaining.get() > 0) {
+                        float maxHP = BlockHPManager.getMaxHP(state);
+                        float ratio = maxHP > 0 ? (1f - (remaining.get() / maxHP)) : 0f;
+                        spawnHitEffects(serverLevel, immutablePos, state, targetCenter, ratio);
+                    }
+                }
+            }
         }
     }
 
@@ -78,7 +141,7 @@ public class BlockHPEventHandler {
         }
     }
 
-    private void spawnBreakEffects(ServerLevel level, BlockPos pos, BlockState state) {
+    public static void spawnBreakEffects(ServerLevel level, BlockPos pos, BlockState state) {
         if (BlockHPConfig.SPAWN_BREAK_PARTICLES.get()) {
             level.sendParticles(
                     new BlockParticleOption(ParticleTypes.BLOCK, state),
@@ -92,8 +155,8 @@ public class BlockHPEventHandler {
         }
     }
 
-    private void spawnHitEffects(ServerLevel level, BlockPos pos, BlockState state,
-                                  Vec3 hitVec, float damageRatio) {
+    public static void spawnHitEffects(ServerLevel level, BlockPos pos, BlockState state,
+                                       Vec3 hitVec, float damageRatio) {
         if (BlockHPConfig.SPAWN_BREAK_PARTICLES.get()) {
             int count = 1 + (int) (damageRatio * 8);
             level.sendParticles(
@@ -108,5 +171,34 @@ public class BlockHPEventHandler {
                     0.5F + damageRatio * 0.5F,
                     0.8F + level.random.nextFloat() * 0.4F);
         }
+    }
+
+    public static float getExplosionRadius(Explosion explosion) {
+        if (explosion == null) return 0f;
+        if (!fieldSearched) {
+            fieldSearched = true;
+            String[] candidateNames = {"f_46014_", "radius"};
+            for (String name : candidateNames) {
+                try {
+                    Field f = Explosion.class.getDeclaredField(name);
+                    f.setAccessible(true);
+                    explosionRadiusField = f;
+                    break;
+                } catch (NoSuchFieldException ignored) {}
+            }
+        }
+        if (explosionRadiusField != null) {
+            try {
+                return explosionRadiusField.getFloat(explosion);
+            } catch (IllegalAccessException ignored) {}
+        }
+        return 3.0f;
+    }
+
+    private static boolean isTaczExplosion(Entity directSource, Explosion explosion) {
+        if (directSource != null && directSource.getClass().getName().contains("com.tacz")) {
+            return true;
+        }
+        return explosion != null && explosion.getClass().getName().contains("com.tacz");
     }
 }
