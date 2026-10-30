@@ -177,14 +177,26 @@ public class BlockHPEventHandler {
         if (explosion == null) return 0f;
         if (!fieldSearched) {
             fieldSearched = true;
-            String[] candidateNames = {"f_46014_", "radius"};
+            String[] candidateNames = {"radius", "f_46017_"};
             for (String name : candidateNames) {
                 try {
                     Field f = Explosion.class.getDeclaredField(name);
-                    f.setAccessible(true);
-                    explosionRadiusField = f;
-                    break;
+                    if (f.getType() == float.class) {
+                        f.setAccessible(true);
+                        explosionRadiusField = f;
+                        break;
+                    }
                 } catch (NoSuchFieldException ignored) {}
+            }
+            // 兜底：如果混淆名或者环境有变，直接找唯一 float 字段
+            if (explosionRadiusField == null) {
+                for (Field f : Explosion.class.getDeclaredFields()) {
+                    if (f.getType() == float.class) {
+                        f.setAccessible(true);
+                        explosionRadiusField = f;
+                        break;
+                    }
+                }
             }
         }
         if (explosionRadiusField != null) {
