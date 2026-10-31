@@ -90,19 +90,21 @@ public class BlockHPEventHandler {
                     if (state.isAir()) continue;
                     if (!BlockHPManager.isBreakable(state)) continue;
 
-                    // 视线阻挡检测（如果隔着未破坏的实心厚掩体，阻挡冲击波）
+                    // 视线阻挡检测（贴脸 1.8 格内冲击波直接贯通，超出 1.8 格检测实心掩体阻隔）
                     Vec3 targetCenter = new Vec3(x + 0.5, y + 0.5, z + 0.5);
-                    BlockHitResult hit = serverLevel.clip(new ClipContext(
-                            center,
-                            targetCenter,
-                            ClipContext.Block.COLLIDER,
-                            ClipContext.Fluid.NONE,
-                            CollisionContext.empty()
-                    ));
-                    if (hit.getType() != HitResult.Type.MISS
-                            && !hit.getBlockPos().equals(cursor)
-                            && !vanillaDestroyed.contains(hit.getBlockPos())) {
-                        continue;
+                    if (distSq > 3.24) {
+                        BlockHitResult hit = serverLevel.clip(new ClipContext(
+                                center,
+                                targetCenter,
+                                ClipContext.Block.COLLIDER,
+                                ClipContext.Fluid.NONE,
+                                CollisionContext.empty()
+                        ));
+                        if (hit.getType() != HitResult.Type.MISS
+                                && !hit.getBlockPos().equals(cursor)
+                                && !vanillaDestroyed.contains(hit.getBlockPos())) {
+                            continue;
+                        }
                     }
 
                     double dist = Math.sqrt(distSq);
@@ -125,14 +127,17 @@ public class BlockHPEventHandler {
         }
 
         // --- 物理载具/物理化方块残存波及扣血（机械动力 Contraption / 航空学物理化方块 / 飞艇等） ---
-        handlePhysicsVehicleExplosion(serverLevel, center, effectiveRadius, baseDamage, vanillaDestroyed);
+        // --- 物理载具/物理化方块残存波及扣血（机械动力 Contraption / 航空学物理化方块 / 飞艇等） ---
+        handlePhysicsVehicleExplosion(serverLevel, explosion, center, effectiveRadius, baseDamage, vanillaDestroyed);
     }
 
     /**
-     * 针对物理载具（机械动力 Contraption / 航空学 Sable 物理化方块 / 飞艇等）执行残存波及耐久伤害。
-     * 原版/物理引擎直接摧毁的方块保持放行；仅对幸存的白名单方块按距离衰减扣血。
+     * 针对物理载具（机械动力 Contraption / 航空学 Sable 物理化方块 / 飞艇等）执行爆炸摧毁与残存波及扣血。
+     * 双轨制对齐原版：
+     * 1. 核心冲击区 / 原版可直接摧毁的方块：给予致死伤害直接击碎，形成与原版一致的爆坑。
+     * 2. 残存波及区 / 高抗性或边缘方块：原版无法直接炸毁，按距离衰减扣除耐久并显示裂纹。
      */
-    private void handlePhysicsVehicleExplosion(ServerLevel serverLevel, Vec3 center, float effectiveRadius,
+    private void handlePhysicsVehicleExplosion(ServerLevel serverLevel, Explosion explosion, Vec3 center, float effectiveRadius,
                                                float baseDamage, Set<BlockPos> vanillaDestroyed) {
         AABB explosionBox = new AABB(
                 center.x - effectiveRadius, center.y - effectiveRadius, center.z - effectiveRadius,
@@ -149,15 +154,21 @@ public class BlockHPEventHandler {
             AABB vehicleBox = vehicle.getBoundingBox().intersect(explosionBox);
             if (vehicleBox == null) continue;
 
-            // 采样探测：在载具与爆炸交集的包围盒内生成探测采样点
-            double step = Math.max(1.0, Math.min(2.0, effectiveRadius / 4.0));
+            // 采样探测步长：在载具与爆炸交集的包围盒内生成探测采样点
+            double step = Math.max(0.8, Math.min(1.5, effectiveRadius / 4.0));
             int processedCount = 0;
-            final int maxProcessedPerVehicle = 64; // 性能上限硬安全锁，防极端情况卡服
+            final int maxProcessedPerVehicle = 256; // 性能上限硬安全锁，防极端情况卡服
 
+            boolean limitReached = false;
             for (double x = vehicleBox.minX + 0.5; x <= vehicleBox.maxX; x += step) {
+                if (limitReached) break;
                 for (double y = vehicleBox.minY + 0.5; y <= vehicleBox.maxY; y += step) {
+                    if (limitReached) break;
                     for (double z = vehicleBox.minZ + 0.5; z <= vehicleBox.maxZ; z += step) {
-                        if (processedCount >= maxProcessedPerVehicle) break;
+                        if (processedCount >= maxProcessedPerVehicle) {
+                            limitReached = true;
+                            break;
+                        }
 
                         Vec3 target = new Vec3(x, y, z);
                         double distSq = center.distanceToSqr(target);
@@ -185,8 +196,23 @@ public class BlockHPEventHandler {
                         double actualDist = Math.sqrt(center.distanceToSqr(hit.getLocation()));
                         if (actualDist > effectiveRadius) continue;
 
-                        float falloff = (float) Math.max(0.0f, 1.0f - (actualDist / effectiveRadius));
-                        float damage = baseDamage * falloff;
+                        // 原版抗性与射线威力结算
+                        float resistance = state.getBlock().getExplosionResistance();
+                        float rayPower = effectiveRadius * (0.7f + serverLevel.random.nextFloat() * 0.6f);
+                        float blastPower = rayPower - (float) actualDist * 0.75f;
+                        float resistanceCost = (resistance + 0.3f) * 0.3f;
+
+                        float maxHP = BlockHPManager.getMaxHP(state);
+                        float damage;
+
+                        // 双轨制判断：若原版威力足以击穿抗性，则视为核心炸碎区，直接致死摧毁；否则视为残存方块，扣除耐久裂纹
+                        if (blastPower > resistanceCost) {
+                            damage = maxHP * 2.5f; // 致死伤害直接摧毁
+                        } else {
+                            float falloff = (float) Math.max(0.0f, 1.0f - (actualDist / effectiveRadius));
+                            damage = baseDamage * falloff;
+                        }
+
                         if (!Float.isFinite(damage) || damage <= 0.1f) continue;
 
                         processedCount++;
@@ -194,7 +220,6 @@ public class BlockHPEventHandler {
                         if (remaining.isEmpty()) {
                             spawnBreakEffects(serverLevel, hitPos, state);
                         } else if (remaining.get() > 0) {
-                            float maxHP = BlockHPManager.getMaxHP(state);
                             float ratio = maxHP > 0 ? (1f - (remaining.get() / maxHP)) : 0f;
                             spawnHitEffects(serverLevel, hitPos, state, hit.getLocation(), ratio);
                         }
