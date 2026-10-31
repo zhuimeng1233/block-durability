@@ -1,0 +1,71 @@
+{
+  "blockdurability.configuration.title": "Block Durability 方块耐久配置",
+  
+  "blockdurability.configuration.general": "通用设置",
+  "blockdurability.configuration.general.button": "通用设置",
+  "blockdurability.configuration.general.tooltip": "基础运行状态、枪械伤害倍率与自愈规则配置",
+  
+  "blockdurability.configuration.whitelist": "白名单设置",
+  "blockdurability.configuration.whitelist.button": "白名单设置",
+  "blockdurability.configuration.whitelist.tooltip": "控制哪些方块能够被枪械和爆炸赋予耐久破坏机制",
+  
+  "blockdurability.configuration.hp_calculation": "生命值计算",
+  "blockdurability.configuration.hp_calculation.button": "生命值计算",
+  "blockdurability.configuration.hp_calculation.tooltip": "配置方块耐久度 (HP) 的硬度公式计算与单方块覆盖",
+  
+  "blockdurability.configuration.explosion": "爆炸机制",
+  "blockdurability.configuration.explosion.button": "爆炸机制",
+  "blockdurability.configuration.explosion.tooltip": "配置 TaCZ 枪械爆炸、原版爆炸与物理载具波及耐久机制",
+  
+  "blockdurability.configuration.effects": "特效与掉落",
+  "blockdurability.configuration.effects.button": "特效与掉落",
+  "blockdurability.configuration.effects.tooltip": "配置受击打击感音效、方块碎裂粒子以及破损掉落物",
+  
+  "blockdurability.configuration.enabled": "启用方块耐久系统",
+  "blockdurability.configuration.enabled.tooltip": "全局开关：开启或关闭方块耐久系统",
+  
+  "blockdurability.configuration.damagePerHit": "单发命中固定伤害",
+  "blockdurability.configuration.damagePerHit.tooltip": "当未开启子弹真实伤害时，每颗命中子弹扣除的固定方块耐久值",
+  
+  "blockdurability.configuration.useBulletDamage": "使用子弹真实威力",
+  "blockdurability.configuration.useBulletDamage.tooltip": "若开启，将根据 TaCZ 枪械子弹的实际实体伤害计算方块扣血量",
+  
+  "blockdurability.configuration.bulletDamageMultiplier": "子弹伤害倍率",
+  "blockdurability.configuration.bulletDamageMultiplier.tooltip": "开启子弹真实威力时的伤害放大系数",
+  
+  "blockdurability.configuration.healTimeoutSeconds": "自动愈合超时 (秒)",
+  "blockdurability.configuration.healTimeoutSeconds.tooltip": "受损方块在脱离战斗后自动自愈并清除开裂纹理的秒数（设为 0 完全禁用自愈）",
+  
+  "blockdurability.configuration.blockWhitelist": "方块破坏白名单",
+  "blockdurability.configuration.blockWhitelist.tooltip": "白名单列表：支持 'tag:标签'、'modid:方块' 以及通配符 'modid:*'。未在列表中的方块完全免疫耐久损伤",
+  
+  "blockdurability.configuration.hardnessMultiplier": "硬度系数倍率",
+  "blockdurability.configuration.hardnessMultiplier.tooltip": "方块最大耐久 = max(最低HP, 原版硬度 * 此系数)。硬度与爆炸抗性强正相关",
+  
+  "blockdurability.configuration.minBlockHP": "最低方块耐久 (HP)",
+  "blockdurability.configuration.minBlockHP.tooltip": "任何白名单方块允许的最低耐久值（防止脆性方块 0 血瞬碎）",
+  
+  "blockdurability.configuration.blockHPOverrides": "指定方块血量覆盖",
+  "blockdurability.configuration.blockHPOverrides.tooltip": "直接指定特定方块的绝对 HP（格式：'modid:block_id=血量'，支持通配符），优先级高于硬度公式",
+  
+  "blockdurability.configuration.damageMultiplier": "爆炸伤害倍率",
+  "blockdurability.configuration.damageMultiplier.tooltip": "爆炸冲击波对白名单方块造成的耐久破坏放大系数",
+  
+  "blockdurability.configuration.maxRadius": "爆炸最大扫描半径",
+  "blockdurability.configuration.maxRadius.tooltip": "爆炸能够造成耐久波及的最大距离（性能安全上限，默认 16 格）",
+  
+  "blockdurability.configuration.handleVanillaExplosions": "处理原版/模组爆炸",
+  "blockdurability.configuration.handleVanillaExplosions.tooltip": "是否允许 TNT、苦力怕等爆炸对外圈未被秒杀的白名单方块施加距离衰减耐久伤害",
+  
+  "blockdurability.configuration.spawnBreakParticles": "生成碎裂粒子",
+  "blockdurability.configuration.spawnBreakParticles.tooltip": "方块受击或破坏时在命中点生成碎裂方块粒子",
+  
+  "blockdurability.configuration.playBreakSound": "播放打击音效",
+  "blockdurability.configuration.playBreakSound.tooltip": "方块受击时播放敲击音效，破坏时播放碎裂音效",
+  
+  "blockdurability.configuration.dropItems": "破坏时掉落物品",
+  "blockdurability.configuration.dropItems.tooltip": "耐久归零时方块是否掉落为原版掉落物（默认关闭以保护建筑平衡）",
+  
+  "gamerule.blockDurabilityHealSeconds": "方块耐久自愈超时 (秒)",
+  "gamerule.blockDurabilityHealSeconds.description": "受损方块自动愈合并清除客户端破坏裂纹的秒数（0 为关闭）"
+}

@@ -1,6 +1,6 @@
-# [BD][BDur] Block Durability (v2.0.0)
+# [BD][BDur] Block Durability (v2.1.0)
 
-给 Minecraft 方块增加耐久值，让枪械和爆炸可以逐步破坏它们。
+给 Minecraft 方块增加耐久值，让枪械和爆炸可以逐步破坏它们。新增**游戏内图形可视化配置界面**与**机械动力/航空学物理载具爆炸残余波及耐久**支持。
 
 ## 演示
 
@@ -126,6 +126,18 @@ blockHPOverrides = []
 
 如果确实需要覆盖某个方块的计算结果，可以按 `"minecraft:block_id=数值"` 的格式添加条目。
 
+## 可视化配置界面
+
+从 `v2.1.0` 起，模组已原生接入 NeoForge 游戏内配置界面系统：
+- 游戏主菜单或暂停菜单点击 **Mods -> Block Durability -> Config** 即可打开全中文图形配置菜单。
+- 支持实时直观调整白名单列表、公式系数滑块、自愈超时与各爆炸机制开关，支持即时撤销与恢复默认。
+
+## 物理化方块与机械动力兼容
+
+- 完美兼容 **机械动力 (Create Contraptions)** 与 **机械动力：航空学 (Create: Aeronautics / Sable)** 物理化载具结构。
+- 坚持双轨制原则：爆炸判定能够直接秒杀摧毁的物理方块正常炸毁；未被直接炸毁的幸存方块，按逆向局部投影与高频射线采样执行**距离衰减耐久扣血**并产生开裂。
+- 内置实体包围盒相交预检与单次爆炸采样上限安全锁（64 采样点），开销 `< 0.05ms`，杜绝服务器卡顿。
+
 ## 游戏内规则
 
 管理员可以动态调整受损方块的恢复时间：
@@ -145,7 +157,7 @@ blockHPOverrides = []
 ./gradlew test
 ```
 
-构建产物位于 `build/libs/blockdurability-2.0.0-neoforge.jar`。
+构建产物位于 `build/libs/blockdurability-2.1.0-neoforge.jar`。
 
 ## 许可证
 

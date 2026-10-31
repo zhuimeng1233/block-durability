@@ -7,9 +7,11 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import top.dreamfall.blockdurability.client.ClientConfigHandler;
 
 import java.nio.file.Path;
 
@@ -25,6 +27,11 @@ public class BlockDurability {
     public BlockDurability(IEventBus modEventBus, ModContainer container) {
         // 注册配置
         container.registerConfig(ModConfig.Type.COMMON, BlockHPConfig.SPEC);
+
+        // 客户端安全注册游戏内配置界面
+        if (FMLEnvironment.dist.isClient()) {
+            ClientConfigHandler.register(container);
+        }
 
         // 监听配置加载与重载事件，确保热重载后白名单和血量覆盖即时生效
         modEventBus.addListener((ModConfigEvent.Loading event) -> {

@@ -6,10 +6,14 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -119,6 +123,99 @@ public class BlockHPEventHandler {
                 }
             }
         }
+
+        // --- 物理载具/物理化方块残存波及扣血（机械动力 Contraption / 航空学物理化方块 / 飞艇等） ---
+        handlePhysicsVehicleExplosion(serverLevel, center, effectiveRadius, baseDamage, vanillaDestroyed);
+    }
+
+    /**
+     * 针对物理载具（机械动力 Contraption / 航空学 Sable 物理化方块 / 飞艇等）执行残存波及耐久伤害。
+     * 原版/物理引擎直接摧毁的方块保持放行；仅对幸存的白名单方块按距离衰减扣血。
+     */
+    private void handlePhysicsVehicleExplosion(ServerLevel serverLevel, Vec3 center, float effectiveRadius,
+                                               float baseDamage, Set<BlockPos> vanillaDestroyed) {
+        AABB explosionBox = new AABB(
+                center.x - effectiveRadius, center.y - effectiveRadius, center.z - effectiveRadius,
+                center.x + effectiveRadius, center.y + effectiveRadius, center.z + effectiveRadius
+        );
+
+        List<Entity> vehicles = serverLevel.getEntities((Entity) null, explosionBox,
+                e -> isPhysicsVehicle(e) && e.getBoundingBox().intersects(explosionBox));
+        if (vehicles.isEmpty()) return;
+
+        Set<BlockPos> processedPositions = new HashSet<>();
+
+        for (Entity vehicle : vehicles) {
+            AABB vehicleBox = vehicle.getBoundingBox().intersect(explosionBox);
+            if (vehicleBox == null) continue;
+
+            // 采样探测：在载具与爆炸交集的包围盒内生成探测采样点
+            double step = Math.max(1.0, Math.min(2.0, effectiveRadius / 4.0));
+            int processedCount = 0;
+            final int maxProcessedPerVehicle = 64; // 性能上限硬安全锁，防极端情况卡服
+
+            for (double x = vehicleBox.minX + 0.5; x <= vehicleBox.maxX; x += step) {
+                for (double y = vehicleBox.minY + 0.5; y <= vehicleBox.maxY; y += step) {
+                    for (double z = vehicleBox.minZ + 0.5; z <= vehicleBox.maxZ; z += step) {
+                        if (processedCount >= maxProcessedPerVehicle) break;
+
+                        Vec3 target = new Vec3(x, y, z);
+                        double distSq = center.distanceToSqr(target);
+                        if (distSq > effectiveRadius * effectiveRadius) continue;
+
+                        BlockHitResult hit = serverLevel.clip(new ClipContext(
+                                center,
+                                target,
+                                ClipContext.Block.COLLIDER,
+                                ClipContext.Fluid.NONE,
+                                CollisionContext.empty()
+                        ));
+
+                        if (hit.getType() != HitResult.Type.BLOCK) continue;
+
+                        BlockPos hitPos = hit.getBlockPos();
+                        // 已被原版/模组直接炸碎的放行，不重复扣耐久；同一个方块在同一次爆炸中只结算一次
+                        if (vanillaDestroyed.contains(hitPos) || !processedPositions.add(hitPos)) {
+                            continue;
+                        }
+
+                        BlockState state = serverLevel.getBlockState(hitPos);
+                        if (state.isAir() || !BlockHPManager.isBreakable(state)) continue;
+
+                        double actualDist = Math.sqrt(center.distanceToSqr(hit.getLocation()));
+                        if (actualDist > effectiveRadius) continue;
+
+                        float falloff = (float) Math.max(0.0f, 1.0f - (actualDist / effectiveRadius));
+                        float damage = baseDamage * falloff;
+                        if (!Float.isFinite(damage) || damage <= 0.1f) continue;
+
+                        processedCount++;
+                        Optional<Float> remaining = BlockHPManager.damageBlock(serverLevel, hitPos, state, damage);
+                        if (remaining.isEmpty()) {
+                            spawnBreakEffects(serverLevel, hitPos, state);
+                        } else if (remaining.get() > 0) {
+                            float maxHP = BlockHPManager.getMaxHP(state);
+                            float ratio = maxHP > 0 ? (1f - (remaining.get() / maxHP)) : 0f;
+                            spawnHitEffects(serverLevel, hitPos, state, hit.getLocation(), ratio);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isPhysicsVehicle(Entity entity) {
+        if (entity == null || entity instanceof LivingEntity || entity instanceof Projectile || entity instanceof ItemEntity) {
+            return false;
+        }
+        String className = entity.getClass().getName();
+        return className.contains("Contraption")
+                || className.contains("Ship")
+                || className.contains("SubLevel")
+                || className.contains("Physics")
+                || className.startsWith("dev.ryanhcode.sable")
+                || className.startsWith("com.simibubi.create")
+                || className.startsWith("org.valkyrienskies");
     }
 
     @SubscribeEvent

@@ -1,9 +1,9 @@
-# Block Durability (BD) 跨版本维护与交接手册 (v2.0.0)
+# Block Durability (BD) 跨版本维护与交接手册 (v2.1.0)
 
 > **模组定位**：`block-durability` 作为独立伴生模组（Addon）与 Timeless and Classics Zero (TaCZ) 协同工作，亦可脱离 TaCZ 作为独立的原版/模组爆炸耐久破坏模组运行。为 Minecraft 方块赋予基于硬度的耐久机制，配合枪械与爆炸实现动态破坏、裂纹开裂与残余波及。  
 > **模组作者**：坠梦 (Copyright © 2025-2026 坠梦)  
 > **开源协议**：MIT  
-> **当前版本**：`v2.0.0`（1.21.1 NeoForge 作为主开发分支首发）
+> **当前版本**：`v2.1.0`（1.21.1 NeoForge 作为主开发分支首发）
 
 ---
 
@@ -13,7 +13,7 @@
 
 | 目标游戏版本 | 模组加载器 | 本地工作区绝对路径 | Git 分支名 | 当前定位 | 产出 JAR 路径 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **MC 1.21.1** | **NeoForge**<br>(>= 21.1.80) | `E:\Gnew\block-durability` | **`master`** | **核心主开发分支（默认）** | `build/libs/blockdurability-2.0.0-neoforge.jar` |
+| **MC 1.21.1** | **NeoForge**<br>(>= 21.1.80) | `E:\Gnew\block-durability` | **`master`** | **核心主开发分支（默认）** | `build/libs/blockdurability-2.1.0-neoforge.jar` |
 | **MC 1.20.1** | **Forge**<br>(47.3.0) | `E:\New\MC\block-durability-forge-1.20.1` | `forge-1.20.1` | 长期维护分支 (Worktree) | `build/libs/blockdurability-1.20.1-2.0.0-forge.jar` |
 | **MC 1.21.11** | **NeoForge**<br>(21.11.48) | `E:\Gnew\block-durability` | `neoforge-1.21.11` | 本地实验分支，不发布、不推送、不打标签 | 仅本地试验产物 |
 
@@ -59,6 +59,17 @@
 ### 2.7 挖掘与放置生命周期状态闭环 (Block Lifecycle Cleanup)
 - **机制**：监听 `BlockEvent.BreakEvent` 与 `BlockEvent.EntityPlaceEvent`，以及定时扫描空气方块。
 - **作用**：当残血方块被玩家手动挖掘、物理推走或水流冲毁后，立即广播 `-1` 进度包清除客户端破坏裂纹并移除服务端缓存，彻底根除原地放新方块“继承旧裂纹/秒碎”的幽灵状态 Bug。
+
+### 2.8 游戏内可视化配置界面 (In-Game Config GUI)
+- **机制**：客户端在 `IConfigScreenFactory` 注册 NeoForge 原生 `ConfigurationScreen`，配合全量 `zh_cn.json` 与 `en_us.json` 键值。
+- **作用**：玩家在 Mods 菜单点击 Config 即可图形化调整所有白名单、硬度乘数、自愈规则与爆炸开关，无需手动翻改 TOML 文件；严格物理端隔离，防专用服务端崩溃。
+
+### 2.9 机械动力与航空学物理化载具爆炸残余波及兼容 (Physics Contraption Explosion)
+- **机制**：在 `ExplosionEvent.Detonate` 阶段，利用 AABB 探测爆炸范围内的载具实体（Create Contraption / 航空学 Sable 物理载具 / Valkyrien Skies 飞船等）。
+- **双轨制落实**：
+  - 判定被原版/物理引擎直接秒杀摧毁的方块（在 `affectedBlocks` 中），**继续放行正常破坏**；
+  - 幸存但被爆炸波及的白名单物理方块，通过逆向局部采样计算线性距离衰减，调用 `BlockHPManager.damageBlock()` 进行**耐久扣血并显示开裂**。
+- **性能硬锁**：实体 AABB 快速早退，单次爆炸采样上限严格限制（最大 64 采样点），处理开销 `< 0.05ms`，杜绝卡服与掉帧。
 
 ---
 
