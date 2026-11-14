@@ -6,14 +6,10 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -125,122 +121,6 @@ public class BlockHPEventHandler {
                 }
             }
         }
-
-        // --- 物理载具/物理化方块残存波及扣血（机械动力 Contraption / 航空学物理化方块 / 飞艇等） ---
-        // --- 物理载具/物理化方块残存波及扣血（机械动力 Contraption / 航空学物理化方块 / 飞艇等） ---
-        handlePhysicsVehicleExplosion(serverLevel, explosion, center, effectiveRadius, baseDamage, vanillaDestroyed);
-    }
-
-    /**
-     * 针对物理载具（机械动力 Contraption / 航空学 Sable 物理化方块 / 飞艇等）执行爆炸摧毁与残存波及扣血。
-     * 双轨制对齐原版：
-     * 1. 核心冲击区 / 原版可直接摧毁的方块：给予致死伤害直接击碎，形成与原版一致的爆坑。
-     * 2. 残存波及区 / 高抗性或边缘方块：原版无法直接炸毁，按距离衰减扣除耐久并显示裂纹。
-     */
-    private void handlePhysicsVehicleExplosion(ServerLevel serverLevel, Explosion explosion, Vec3 center, float effectiveRadius,
-                                               float baseDamage, Set<BlockPos> vanillaDestroyed) {
-        AABB explosionBox = new AABB(
-                center.x - effectiveRadius, center.y - effectiveRadius, center.z - effectiveRadius,
-                center.x + effectiveRadius, center.y + effectiveRadius, center.z + effectiveRadius
-        );
-
-        List<Entity> vehicles = serverLevel.getEntities((Entity) null, explosionBox,
-                e -> isPhysicsVehicle(e) && e.getBoundingBox().intersects(explosionBox));
-        if (vehicles.isEmpty()) return;
-
-        Set<BlockPos> processedPositions = new HashSet<>();
-
-        for (Entity vehicle : vehicles) {
-            AABB vehicleBox = vehicle.getBoundingBox().intersect(explosionBox);
-            if (vehicleBox == null) continue;
-
-            // 采样探测步长：在载具与爆炸交集的包围盒内生成探测采样点
-            double step = Math.max(0.8, Math.min(1.5, effectiveRadius / 4.0));
-            int processedCount = 0;
-            final int maxProcessedPerVehicle = 256; // 性能上限硬安全锁，防极端情况卡服
-
-            boolean limitReached = false;
-            for (double x = vehicleBox.minX + 0.5; x <= vehicleBox.maxX; x += step) {
-                if (limitReached) break;
-                for (double y = vehicleBox.minY + 0.5; y <= vehicleBox.maxY; y += step) {
-                    if (limitReached) break;
-                    for (double z = vehicleBox.minZ + 0.5; z <= vehicleBox.maxZ; z += step) {
-                        if (processedCount >= maxProcessedPerVehicle) {
-                            limitReached = true;
-                            break;
-                        }
-
-                        Vec3 target = new Vec3(x, y, z);
-                        double distSq = center.distanceToSqr(target);
-                        if (distSq > effectiveRadius * effectiveRadius) continue;
-
-                        BlockHitResult hit = serverLevel.clip(new ClipContext(
-                                center,
-                                target,
-                                ClipContext.Block.COLLIDER,
-                                ClipContext.Fluid.NONE,
-                                CollisionContext.empty()
-                        ));
-
-                        if (hit.getType() != HitResult.Type.BLOCK) continue;
-
-                        BlockPos hitPos = hit.getBlockPos();
-                        // 已被原版/模组直接炸碎的放行，不重复扣耐久；同一个方块在同一次爆炸中只结算一次
-                        if (vanillaDestroyed.contains(hitPos) || !processedPositions.add(hitPos)) {
-                            continue;
-                        }
-
-                        BlockState state = serverLevel.getBlockState(hitPos);
-                        if (state.isAir() || !BlockHPManager.isBreakable(state)) continue;
-
-                        double actualDist = Math.sqrt(center.distanceToSqr(hit.getLocation()));
-                        if (actualDist > effectiveRadius) continue;
-
-                        // 原版抗性与射线威力结算
-                        float resistance = state.getBlock().getExplosionResistance();
-                        float rayPower = effectiveRadius * (0.7f + serverLevel.random.nextFloat() * 0.6f);
-                        float blastPower = rayPower - (float) actualDist * 0.75f;
-                        float resistanceCost = (resistance + 0.3f) * 0.3f;
-
-                        float maxHP = BlockHPManager.getMaxHP(state);
-                        float damage;
-
-                        // 双轨制判断：若原版威力足以击穿抗性，则视为核心炸碎区，直接致死摧毁；否则视为残存方块，扣除耐久裂纹
-                        if (blastPower > resistanceCost) {
-                            damage = maxHP * 2.5f; // 致死伤害直接摧毁
-                        } else {
-                            float falloff = (float) Math.max(0.0f, 1.0f - (actualDist / effectiveRadius));
-                            damage = baseDamage * falloff;
-                        }
-
-                        if (!Float.isFinite(damage) || damage <= 0.1f) continue;
-
-                        processedCount++;
-                        Optional<Float> remaining = BlockHPManager.damageBlock(serverLevel, hitPos, state, damage);
-                        if (remaining.isEmpty()) {
-                            spawnBreakEffects(serverLevel, hitPos, state);
-                        } else if (remaining.get() > 0) {
-                            float ratio = maxHP > 0 ? (1f - (remaining.get() / maxHP)) : 0f;
-                            spawnHitEffects(serverLevel, hitPos, state, hit.getLocation(), ratio);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private static boolean isPhysicsVehicle(Entity entity) {
-        if (entity == null || entity instanceof LivingEntity || entity instanceof Projectile || entity instanceof ItemEntity) {
-            return false;
-        }
-        String className = entity.getClass().getName();
-        return className.contains("Contraption")
-                || className.contains("Ship")
-                || className.contains("SubLevel")
-                || className.contains("Physics")
-                || className.startsWith("dev.ryanhcode.sable")
-                || className.startsWith("com.simibubi.create")
-                || className.startsWith("org.valkyrienskies");
     }
 
     @SubscribeEvent

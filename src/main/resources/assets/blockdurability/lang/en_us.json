@@ -1,68 +1,116 @@
 {
   "blockdurability.configuration.title": "Block Durability Configuration",
   
+  "blockdurability.configuration.section.general": "General Settings",
+  "blockdurability.configuration.section.general.button": "General Settings",
+  "blockdurability.configuration.section.general.tooltip": "Basic system toggle, bullet damage settings, and healing timeout rules",
   "blockdurability.configuration.general": "General Settings",
   "blockdurability.configuration.general.button": "General Settings",
   "blockdurability.configuration.general.tooltip": "Basic system toggle, bullet damage settings, and healing timeout rules",
   
+  "blockdurability.configuration.section.whitelist": "Whitelist Settings",
+  "blockdurability.configuration.section.whitelist.button": "Whitelist Settings",
+  "blockdurability.configuration.section.whitelist.tooltip": "Define which blocks can receive damage from guns and explosions",
   "blockdurability.configuration.whitelist": "Whitelist Settings",
   "blockdurability.configuration.whitelist.button": "Whitelist Settings",
   "blockdurability.configuration.whitelist.tooltip": "Define which blocks can receive damage from guns and explosions",
   
+  "blockdurability.configuration.section.hp_calculation": "HP Calculation",
+  "blockdurability.configuration.section.hp_calculation.button": "HP Calculation",
+  "blockdurability.configuration.section.hp_calculation.tooltip": "Configure block HP formulas based on hardness and per-block overrides",
   "blockdurability.configuration.hp_calculation": "HP Calculation",
   "blockdurability.configuration.hp_calculation.button": "HP Calculation",
   "blockdurability.configuration.hp_calculation.tooltip": "Configure block HP formulas based on hardness and per-block overrides",
   
+  "blockdurability.configuration.section.explosion": "Explosion Durability",
+  "blockdurability.configuration.section.explosion.button": "Explosion Durability",
+  "blockdurability.configuration.section.explosion.tooltip": "Configure residual damage for TaCZ explosives, vanilla explosions, and other mods",
   "blockdurability.configuration.explosion": "Explosion Durability",
   "blockdurability.configuration.explosion.button": "Explosion Durability",
-  "blockdurability.configuration.explosion.tooltip": "Configure residual damage for TaCZ explosives, vanilla explosions, and physics contraptions",
+  "blockdurability.configuration.explosion.tooltip": "Configure residual damage for TaCZ explosives, vanilla explosions, and other mods",
   
+  "blockdurability.configuration.section.effects": "Effects & Drops",
+  "blockdurability.configuration.section.effects.button": "Effects & Drops",
+  "blockdurability.configuration.section.effects.tooltip": "Configure hit sounds, crack/break particles, and item drops",
   "blockdurability.configuration.effects": "Effects & Drops",
   "blockdurability.configuration.effects.button": "Effects & Drops",
   "blockdurability.configuration.effects.tooltip": "Configure hit sounds, crack/break particles, and item drops",
   
+  "blockdurability.configuration.general.enabled": "Enable Durability System",
+  "blockdurability.configuration.general.enabled.tooltip": "Master switch to enable or disable the block durability system",
   "blockdurability.configuration.enabled": "Enable Durability System",
   "blockdurability.configuration.enabled.tooltip": "Master switch to enable or disable the block durability system",
   
+  "blockdurability.configuration.general.damagePerHit": "Damage Per Hit",
+  "blockdurability.configuration.general.damagePerHit.tooltip": "Fixed damage dealt per bullet hit when useBulletDamage is false",
   "blockdurability.configuration.damagePerHit": "Damage Per Hit",
   "blockdurability.configuration.damagePerHit.tooltip": "Fixed damage dealt per bullet hit when useBulletDamage is false",
   
+  "blockdurability.configuration.general.useBulletDamage": "Use Bullet Entity Damage",
+  "blockdurability.configuration.general.useBulletDamage.tooltip": "If true, deals damage based on actual TaCZ bullet power",
   "blockdurability.configuration.useBulletDamage": "Use Bullet Entity Damage",
   "blockdurability.configuration.useBulletDamage.tooltip": "If true, deals damage based on actual TaCZ bullet power",
   
+  "blockdurability.configuration.general.bulletDamageMultiplier": "Bullet Damage Multiplier",
+  "blockdurability.configuration.general.bulletDamageMultiplier.tooltip": "Global multiplier applied when useBulletDamage is true",
   "blockdurability.configuration.bulletDamageMultiplier": "Bullet Damage Multiplier",
   "blockdurability.configuration.bulletDamageMultiplier.tooltip": "Global multiplier applied when useBulletDamage is true",
   
+  "blockdurability.configuration.general.healTimeoutSeconds": "Auto-Healing Timeout (Seconds)",
+  "blockdurability.configuration.general.healTimeoutSeconds.tooltip": "Seconds of inactivity before damaged blocks heal and clear crack overlays (0 to disable)",
   "blockdurability.configuration.healTimeoutSeconds": "Auto-Healing Timeout (Seconds)",
   "blockdurability.configuration.healTimeoutSeconds.tooltip": "Seconds of inactivity before damaged blocks heal and clear crack overlays (0 to disable)",
   
+  "blockdurability.configuration.whitelist.blockWhitelist": "Block Whitelist",
+  "blockdurability.configuration.whitelist.blockWhitelist.tooltip": "List of breakable blocks: supports 'tag:namespace:path', 'modid:block', and wildcards 'modid:*'. Blocks not in this list are immune to durability damage",
   "blockdurability.configuration.blockWhitelist": "Block Whitelist",
   "blockdurability.configuration.blockWhitelist.tooltip": "List of breakable blocks: supports 'tag:namespace:path', 'modid:block', and wildcards 'modid:*'. Blocks not in this list are immune to durability damage",
   
+  "blockdurability.configuration.hp_calculation.hardnessMultiplier": "Hardness Multiplier",
+  "blockdurability.configuration.hp_calculation.hardnessMultiplier.tooltip": "Block HP = max(minBlockHP, hardness * multiplier). Hardness correlates with explosion resistance",
   "blockdurability.configuration.hardnessMultiplier": "Hardness Multiplier",
   "blockdurability.configuration.hardnessMultiplier.tooltip": "Block HP = max(minBlockHP, hardness * multiplier). Hardness correlates with explosion resistance",
   
+  "blockdurability.configuration.hp_calculation.minBlockHP": "Minimum Block HP",
+  "blockdurability.configuration.hp_calculation.minBlockHP.tooltip": "Minimum HP allowed for any whitelisted block (prevents instant-break zero-HP blocks)",
   "blockdurability.configuration.minBlockHP": "Minimum Block HP",
   "blockdurability.configuration.minBlockHP.tooltip": "Minimum HP allowed for any whitelisted block (prevents instant-break zero-HP blocks)",
   
+  "blockdurability.configuration.hp_calculation.blockHPOverrides": "Block HP Overrides",
+  "blockdurability.configuration.hp_calculation.blockHPOverrides.tooltip": "Per-block HP overrides ('modid:block=hp', wildcards supported). Takes priority over the hardness formula",
   "blockdurability.configuration.blockHPOverrides": "Block HP Overrides",
   "blockdurability.configuration.blockHPOverrides.tooltip": "Per-block HP overrides ('modid:block=hp', wildcards supported). Takes priority over the hardness formula",
   
+  "blockdurability.configuration.explosion.enabled": "Enable Explosion Durability",
+  "blockdurability.configuration.explosion.enabled.tooltip": "Allow TaCZ and vanilla/mod explosions to damage whitelisted blocks",
+  
+  "blockdurability.configuration.explosion.damageMultiplier": "Explosion Damage Multiplier",
+  "blockdurability.configuration.explosion.damageMultiplier.tooltip": "Multiplier for durability damage caused by explosions",
   "blockdurability.configuration.damageMultiplier": "Explosion Damage Multiplier",
   "blockdurability.configuration.damageMultiplier.tooltip": "Multiplier for durability damage caused by explosions",
   
+  "blockdurability.configuration.explosion.maxRadius": "Max Explosion Scan Radius",
+  "blockdurability.configuration.explosion.maxRadius.tooltip": "Maximum radius scanned for explosion damage (performance safety clamp, default 16)",
   "blockdurability.configuration.maxRadius": "Max Explosion Scan Radius",
   "blockdurability.configuration.maxRadius.tooltip": "Maximum radius scanned for explosion damage (performance safety clamp, default 16)",
   
+  "blockdurability.configuration.explosion.handleVanillaExplosions": "Handle Vanilla & Mod Explosions",
+  "blockdurability.configuration.explosion.handleVanillaExplosions.tooltip": "Whether to apply residual falloff durability damage to blocks surviving TNT, creepers, etc.",
   "blockdurability.configuration.handleVanillaExplosions": "Handle Vanilla & Mod Explosions",
   "blockdurability.configuration.handleVanillaExplosions.tooltip": "Whether to apply residual falloff durability damage to blocks surviving TNT, creepers, etc.",
   
+  "blockdurability.configuration.effects.spawnBreakParticles": "Spawn Break Particles",
+  "blockdurability.configuration.effects.spawnBreakParticles.tooltip": "Spawn block particles at hit locations when damaged or broken",
   "blockdurability.configuration.spawnBreakParticles": "Spawn Break Particles",
   "blockdurability.configuration.spawnBreakParticles.tooltip": "Spawn block particles at hit locations when damaged or broken",
   
+  "blockdurability.configuration.effects.playBreakSound": "Play Hit & Break Sounds",
+  "blockdurability.configuration.effects.playBreakSound.tooltip": "Play hit sounds when damaged, and break sounds when destroyed",
   "blockdurability.configuration.playBreakSound": "Play Hit & Break Sounds",
   "blockdurability.configuration.playBreakSound.tooltip": "Play hit sounds when damaged, and break sounds when destroyed",
   
+  "blockdurability.configuration.effects.dropItems": "Drop Items on Break",
+  "blockdurability.configuration.effects.dropItems.tooltip": "Whether destroyed blocks drop standard item drops (false by default for building balance)",
   "blockdurability.configuration.dropItems": "Drop Items on Break",
   "blockdurability.configuration.dropItems.tooltip": "Whether destroyed blocks drop standard item drops (false by default for building balance)",
   

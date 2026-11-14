@@ -60,16 +60,9 @@
 - **机制**：监听 `BlockEvent.BreakEvent` 与 `BlockEvent.EntityPlaceEvent`，以及定时扫描空气方块。
 - **作用**：当残血方块被玩家手动挖掘、物理推走或水流冲毁后，立即广播 `-1` 进度包清除客户端破坏裂纹并移除服务端缓存，彻底根除原地放新方块“继承旧裂纹/秒碎”的幽灵状态 Bug。
 
-### 2.8 游戏内可视化配置界面 (In-Game Config GUI)
-- **机制**：客户端在 `IConfigScreenFactory` 注册 NeoForge 原生 `ConfigurationScreen`，配合全量 `zh_cn.json` 与 `en_us.json` 键值。
-- **作用**：玩家在 Mods 菜单点击 Config 即可图形化调整所有白名单、硬度乘数、自愈规则与爆炸开关，无需手动翻改 TOML 文件；严格物理端隔离，防专用服务端崩溃。
-
-### 2.9 机械动力与航空学物理化载具爆炸残余波及兼容 (Physics Contraption Explosion)
-- **机制**：在 `ExplosionEvent.Detonate` 阶段，利用 AABB 探测爆炸范围内的载具实体（Create Contraption / 航空学 Sable 物理载具 / Valkyrien Skies 飞船等）。
-- **双轨制落实**：
-  - 判定被原版/物理引擎直接秒杀摧毁的方块（在 `affectedBlocks` 中），**继续放行正常破坏**；
-  - 幸存但被爆炸波及的白名单物理方块，通过逆向局部采样计算线性距离衰减，调用 `BlockHPManager.damageBlock()` 进行**耐久扣血并显示开裂**。
-- **性能硬锁**：实体 AABB 快速早退，单次爆炸采样上限严格限制（最大 64 采样点），处理开销 `< 0.05ms`，杜绝卡服与掉帧。
+### 2.8 游戏内原生可视化配置界面 (In-Game Config GUI)
+- **机制**：客户端在 `IConfigScreenFactory` 注册 NeoForge 官方原生 `ConfigurationScreen`，配合 `BlockHPConfig` 中全量节点 `.translation(...)` 显式声明，与 `zh_cn.json` / `en_us.json` 键值完美对齐。支持游戏内通过 `/bd config` 或 `/blockdurability config` 快捷指令及 Mods 菜单直接呼出。
+- **作用**：玩家可直接图形化分栏调整通用选项、白名单列表、血量乘数、自愈时间与爆炸参数；严格物理端隔离，防专用服务端崩溃。
 
 ---
 

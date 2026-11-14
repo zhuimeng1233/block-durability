@@ -92,32 +92,4 @@ public class BlockHPTest {
         float outFalloff = (float) Math.max(0.0, 1.0 - (4.5 / radius));
         assertEquals(0.0f, outFalloff, 0.001f);
     }
-
-    @Test
-    @DisplayName("物理载具与物理化方块实体识别规则测试")
-    void testPhysicsVehicleRecognition() {
-        // Create 载具
-        assertTrue(isPhysicsVehicleClassName("com.simibubi.create.content.contraptions.ContraptionEntity"));
-        assertTrue(isPhysicsVehicleClassName("com.simibubi.create.content.contraptions.OrientedContraptionEntity"));
-        // 航空学 Sable 物理载具
-        assertTrue(isPhysicsVehicleClassName("dev.ryanhcode.sable.sublevel.ServerLevelPlot"));
-        assertTrue(isPhysicsVehicleClassName("dev.ryanhcode.sable.entity.SubLevelEntity"));
-        // Valkyrien Skies 飞船
-        assertTrue(isPhysicsVehicleClassName("org.valkyrienskies.mod.common.entity.ShipObjectEntity"));
-
-        // 原版生物/抛射物/掉落物不应被误判
-        assertFalse(isPhysicsVehicleClassName("net.minecraft.world.entity.monster.Zombie"));
-        assertFalse(isPhysicsVehicleClassName("net.minecraft.world.entity.projectile.Arrow"));
-        assertFalse(isPhysicsVehicleClassName("net.minecraft.world.entity.item.ItemEntity"));
-    }
-
-    private static boolean isPhysicsVehicleClassName(String className) {
-        return className.contains("Contraption")
-                || className.contains("Ship")
-                || className.contains("SubLevel")
-                || className.contains("Physics")
-                || className.startsWith("dev.ryanhcode.sable")
-                || className.startsWith("com.simibubi.create")
-                || className.startsWith("org.valkyrienskies");
-    }
 }

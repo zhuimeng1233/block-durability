@@ -59,25 +59,30 @@ public class BlockHPConfig {
     }
 
     private static Config build(ModConfigSpec.Builder builder) {
-        builder.push("general");
+        builder.translation("blockdurability.configuration.section.general").push("general");
         ENABLED = builder
                 .comment("Enable the block durability system")
+                .translation("blockdurability.configuration.general.enabled")
                 .define("enabled", true);
         DAMAGE_PER_HIT = builder
                 .comment("Damage dealt to a block per bullet hit (used when useBulletDamage is false)")
+                .translation("blockdurability.configuration.general.damagePerHit")
                 .defineInRange("damagePerHit", 1.0, 0.1, 100.0);
         USE_BULLET_DAMAGE = builder
                 .comment("If true, use the bullet's entity damage * bulletDamageMultiplier as block damage")
+                .translation("blockdurability.configuration.general.useBulletDamage")
                 .define("useBulletDamage", false);
         BULLET_DAMAGE_MULTIPLIER = builder
                 .comment("Multiplier when useBulletDamage is true")
+                .translation("blockdurability.configuration.general.bulletDamageMultiplier")
                 .defineInRange("bulletDamageMultiplier", 1.0, 0.0, 100.0);
         HEAL_TIMEOUT_SECONDS = builder
                 .comment("Seconds of inactivity before a damaged block heals and clears cracks (0 to disable auto-healing)")
+                .translation("blockdurability.configuration.general.healTimeoutSeconds")
                 .defineInRange("healTimeoutSeconds", 120, 0, 86400);
         builder.pop();
 
-        builder.push("whitelist");
+        builder.translation("blockdurability.configuration.section.whitelist").push("whitelist");
         BLOCK_WHITELIST = builder
                 .comment(
                         "Whitelist: only blocks matching these patterns can be damaged by bullets and explosions.",
@@ -89,6 +94,7 @@ public class BlockHPConfig {
                         "",
                         "Default covers: glass, wood planks, logs, leaves, wooden doors/trapdoors/fences"
                 )
+                .translation("blockdurability.configuration.whitelist.blockWhitelist")
                 .defineListAllowEmpty("blockWhitelist",
                         Arrays.asList(
                                 // === 玻璃（Common Tags，兼容所有模组） ===
@@ -125,7 +131,7 @@ public class BlockHPConfig {
                         BlockHPConfig::isValidWhitelistEntry);
         builder.pop();
 
-        builder.push("hp_calculation");
+        builder.translation("blockdurability.configuration.section.hp_calculation").push("hp_calculation");
         HARDNESS_MULTIPLIER = builder
                 .comment(
                         "Block HP = max(minBlockHP, blockHardness * hardnessMultiplier).",
@@ -137,9 +143,11 @@ public class BlockHPConfig {
                         "  Stone (1.5)      → HP = max(1, 1.5*1.5) = 2.25",
                         "  Obsidian (50.0)  → HP = max(1, 50*1.5) = 75"
                 )
+                .translation("blockdurability.configuration.hp_calculation.hardnessMultiplier")
                 .defineInRange("hardnessMultiplier", 1.5, 0.1, 100.0);
         MIN_BLOCK_HP = builder
                 .comment("Minimum HP for any breakable block (prevents zero-HP blocks)")
+                .translation("blockdurability.configuration.hp_calculation.minBlockHP")
                 .defineInRange("minBlockHP", 1.0, 0.5, Double.MAX_VALUE);
         BLOCK_HP_OVERRIDES = builder
                 .comment(
@@ -149,34 +157,42 @@ public class BlockHPConfig {
                         "  \"minecraft:obsidian=20\"  - reduce obsidian to 20 HP",
                         "  \"minecraft:*glass*=1\"    - force all glass to 1 HP"
                 )
+                .translation("blockdurability.configuration.hp_calculation.blockHPOverrides")
                 .defineListAllowEmpty("blockHPOverrides", Arrays.asList(),
                         BlockHPConfig::isValidHpOverride);
         builder.pop();
 
-        builder.push("explosion");
+        builder.translation("blockdurability.configuration.section.explosion").push("explosion");
         EXPLOSION_ENABLED = builder
                 .comment("Enable durability damage from explosions (TaCZ, TNT, Creeper, etc.)")
+                .translation("blockdurability.configuration.explosion.enabled")
                 .define("enabled", true);
         EXPLOSION_DAMAGE_MULTIPLIER = builder
                 .comment("Multiplier for durability damage caused by explosions")
+                .translation("blockdurability.configuration.explosion.damageMultiplier")
                 .defineInRange("damageMultiplier", 1.0, 0.0, 100.0);
         EXPLOSION_MAX_RADIUS = builder
                 .comment("Maximum explosion radius to scan for durability damage (performance safety clamp)")
+                .translation("blockdurability.configuration.explosion.maxRadius")
                 .defineInRange("maxRadius", 16.0, 1.0, 64.0);
         HANDLE_VANILLA_EXPLOSIONS = builder
                 .comment("Whether to apply residual durability damage to vanilla/mod explosions (TNT, Creeper, etc.)")
+                .translation("blockdurability.configuration.explosion.handleVanillaExplosions")
                 .define("handleVanillaExplosions", true);
         builder.pop();
 
-        builder.push("effects");
+        builder.translation("blockdurability.configuration.section.effects").push("effects");
         SPAWN_BREAK_PARTICLES = builder
                 .comment("Spawn block break particles when damaged")
+                .translation("blockdurability.configuration.effects.spawnBreakParticles")
                 .define("spawnBreakParticles", true);
         PLAY_BREAK_SOUND = builder
                 .comment("Play block hit sound when damaged")
+                .translation("blockdurability.configuration.effects.playBreakSound")
                 .define("playBreakSound", true);
         DROP_ITEMS = builder
                 .comment("Whether broken blocks drop items")
+                .translation("blockdurability.configuration.effects.dropItems")
                 .define("dropItems", false);
         builder.pop();
 

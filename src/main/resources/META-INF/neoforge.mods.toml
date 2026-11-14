@@ -22,4 +22,4 @@ versionRange = "[1.21.1,1.22)"
 [[dependencies.blockdurability]]
 modId = "tacz"
 type = "optional"
-versionRange = "[1.1.6,1.2.0)"
+versionRange = "[1.1.6,)"
