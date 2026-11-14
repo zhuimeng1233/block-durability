@@ -8,7 +8,7 @@
   <tr>
     <td width="50%">
       <img src="assets/block-durability-explosion.gif" alt="重型爆炸破坏演示" width="100%">
-      <p align="center">重型爆炸破坏</p>
+      <p align="center">开炮！</p>
     </td>
     <td width="50%">
       <img src="assets/block-durability-rpg.gif" alt="RPG 爆炸破坏演示" width="100%">
@@ -18,11 +18,11 @@
   <tr>
     <td width="50%">
       <img src="assets/block-durability-explosion-spray.gif" alt="连续爆炸破坏演示" width="100%">
-      <p align="center">连续爆炸破坏</p>
+      <p align="center">《爆炸喷》</p>
     </td>
     <td width="50%">
       <img src="assets/block-durability-3x3x3-high-explosive.gif" alt="3x3x3 高爆弹破坏演示" width="100%">
-      <p align="center">3x3x3 高爆弹</p>
+      <p align="center">3x3x3 高爆弹炸黑曜石</p>
     </td>
   </tr>
 </table>
