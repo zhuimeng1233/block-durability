@@ -1,6 +1,6 @@
-# [BD][BDur] Block Durability (Forge 1.20.1 - v2.0.0)
+# [BD][BDur] Block Durability (Forge 1.20.1 - v2.1.0)
 
-给 Minecraft 方块加上耐久值——用枪械与爆炸打碎它们！
+给 Minecraft 方块加上耐久值，用枪械与爆炸逐步打碎它们，并在游戏内直接管理破坏白名单。
 
 <p align="center">
   <img src="assets/block-durability-explosion.gif" alt="Block Durability 2.0 重型爆炸破拆演示" width="720">
@@ -12,6 +12,15 @@
 </p>
 
 > 📌 **分支定位**：此分支为 **Forge 1.20.1** 长期维护分支。核心主开发分支（NeoForge 1.21.1）见 [`master`](https://github.com/zhuimeng1233/block-durability/tree/master) 分支。
+
+---
+
+## v2.1.0 游戏内可视化配置
+
+- **可视化方块管理**：输入 `/bd config`、`/blockdurability config`，或从 Mods 菜单打开配置界面。
+- **一键添加方块**：支持添加主手方块、准星目视方块，或从全局方块浏览器中检索添加。
+- **即时自动保存**：增删方块、导入预设、切换伤害模式和调整参数会立即同步到 `config/blockdurability-common.toml`。
+- **清晰界面**：修复背景模糊层级，提升列表文字和方块图标的显示对比度。
 
 ---
 
@@ -73,6 +82,7 @@
     damagePerHit = 1.0
     useBulletDamage = false
     bulletDamageMultiplier = 1.0
+    healTimeoutSeconds = 120
 
 [whitelist]
     blockWhitelist = [
@@ -106,9 +116,6 @@
     maxRadius = 16.0
     handleVanillaExplosions = true
 
-[healing]
-    healTimeoutSeconds = 120
-
 [effects]
     spawnBreakParticles = true
     playBreakSound = true
@@ -119,6 +126,11 @@
 
 ## 游戏内指令
 
+- **打开可视化管理中心**：
+  ```
+  /bd config
+  /blockdurability config
+  ```
 - **修改自动恢复冷却秒数**：
   ```
   /gamerule blockDurabilityHealSeconds <秒数>
@@ -136,7 +148,7 @@
 ./gradlew test build
 ```
 
-产物在 `build/libs/blockdurability-1.20.1-2.0.0-forge.jar`。
+产物在 `build/libs/blockdurability-1.20.1-2.1.0-forge.jar`。
 
 ---
 

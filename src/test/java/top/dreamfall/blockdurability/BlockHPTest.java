@@ -136,4 +136,25 @@ public class BlockHPTest {
             assertEquals(2.0, ((Number) config.get("general.damagePerHit")).doubleValue(), 0.001);
         }
     }
+
+    @Test
+    @DisplayName("旧版 [healing] 自愈时间迁移到 [general]")
+    void testLegacyHealTimeoutMigration(@TempDir Path tempDir) throws Exception {
+        Path path = tempDir.resolve(BlockDurability.MOD_ID + "-common.toml");
+        Files.writeString(path, """
+                [general]
+                enabled = true
+
+                [healing]
+                healTimeoutSeconds = 45
+                """);
+
+        try (CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build()) {
+            config.load();
+            assertTrue(BlockHPConfig.migrateLegacyConfig(config));
+            assertEquals(45, ((Number) config.get("general.healTimeoutSeconds")).intValue());
+            assertNull(config.get("healing.healTimeoutSeconds"));
+            config.save();
+        }
+    }
 }

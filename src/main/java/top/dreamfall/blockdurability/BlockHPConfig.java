@@ -244,6 +244,19 @@ public class BlockHPConfig {
         }
     }
 
+    static boolean migrateLegacyConfig(CommentedFileConfig config) {
+        Object legacyTimeout = config.get("healing.healTimeoutSeconds");
+        if (!(legacyTimeout instanceof Number number)) {
+            return false;
+        }
+
+        if (config.get("general.healTimeoutSeconds") == null) {
+            config.set("general.healTimeoutSeconds", number.intValue());
+        }
+        config.remove("healing.healTimeoutSeconds");
+        return true;
+    }
+
     /**
      * 强力持久化配置到磁盘文件 (config/blockdurability-common.toml) 并同步刷新内存及缓存。
      */

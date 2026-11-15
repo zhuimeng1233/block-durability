@@ -13,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.dreamfall.blockdurability.client.ClientConfigHandler;
 
-import java.nio.file.Path;
-
 @Mod(BlockDurability.MOD_ID)
 public class BlockDurability {
     public static final String MOD_ID = "blockdurability";
@@ -64,19 +62,13 @@ public class BlockDurability {
      * 用当前 spec 修正配置文件，把新增的配置项补进去。
      */
     private void updateConfigFile() {
-        try {
-            Path configPath = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve(MOD_ID + "-common.toml");
-            if (configPath == null) return;
-
-            CommentedFileConfig config = CommentedFileConfig.builder(configPath)
-                    .sync()
-                    .autosave()
-                    .build();
-
+        try (CommentedFileConfig config = CommentedFileConfig.builder(BlockHPConfig.getConfigPath()).sync().build()) {
             config.load();
+            if (BlockHPConfig.migrateLegacyConfig(config)) {
+                LOGGER.info("Migrated legacy [healing] config to [general].");
+            }
             BlockHPConfig.SPEC.correct(config);
             config.save();
-            config.close();
             LOGGER.info("Config file synced with current specification.");
         } catch (Exception e) {
             LOGGER.warn("Failed to auto-update config file: {}", e.getMessage());
