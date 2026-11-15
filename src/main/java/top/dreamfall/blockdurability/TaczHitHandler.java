@@ -49,10 +49,12 @@ public class TaczHitHandler {
         Optional<Float> remaining = BlockHPManager.damageBlock(level, pos, state, damage);
 
         if (remaining.isEmpty()) {
+            BlockDurability.LOGGER.info("Block broken by bullet: {} at {} with dmg {}", state.getBlock(), pos, damage);
             BlockHPEventHandler.spawnBreakEffects(serverLevel, pos, state);
         } else if (remaining.get() > 0) {
             float maxHP = BlockHPManager.getMaxHP(state);
             float ratio = maxHP > 0 ? (1f - (remaining.get() / maxHP)) : 0f;
+            BlockDurability.LOGGER.debug("Block hit: {} at {}, dealt dmg: {}, HP: {}/{}", state.getBlock(), pos, damage, remaining.get(), maxHP);
             BlockHPEventHandler.spawnHitEffects(serverLevel, pos, state, hitVec, ratio);
         }
     }

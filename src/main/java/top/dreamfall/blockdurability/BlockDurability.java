@@ -8,8 +8,10 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import top.dreamfall.blockdurability.client.ClientConfigHandler;
 
 import java.nio.file.Path;
 
@@ -24,6 +26,11 @@ public class BlockDurability {
     public BlockDurability() {
         // 注册配置
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, BlockHPConfig.SPEC);
+
+        // 客户端安全注册游戏内配置界面与快捷指令
+        if (FMLEnvironment.dist.isClient()) {
+            ClientConfigHandler.register();
+        }
 
         // 监听配置加载与重载事件，确保热重载后白名单和血量覆盖即时生效
         FMLJavaModLoadingContext.get().getModEventBus().addListener((ModConfigEvent.Loading event) -> {
