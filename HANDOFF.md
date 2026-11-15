@@ -107,8 +107,9 @@ git checkout forge-1.20.1
 - **默认主分支**：`master` (即 1.21.1 NeoForge)。
 - **发布范围**：仅发布 `master` (MC 1.21.1 NeoForge) 与 `forge-1.20.1` (MC 1.20.1 Forge)。
 - **禁止发布**：`neoforge-1.21.11` 仅作本地实验，不推送到公开远端，也不创建发布标签。
+- **唯一推送远端**：仅使用 `origin`，不再推送或同步 `mirror`。
 - **同步推送指令**：
 ```powershell
 git -C "E:\Gnew\block-durability" push origin master
-git -C "E:\Gnew\block-durability" push mirror master
+git -C "E:\New\MC\block-durability-forge-1.20.1" push origin forge-1.20.1
 ```
