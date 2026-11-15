@@ -80,7 +80,8 @@ public class BlockDurabilityScreen extends Screen {
         if (!trimmed.isEmpty() && !currentWhitelist.contains(trimmed)) {
             currentWhitelist.add(0, trimmed); // 插入最前面方便查看
             rebuildDisplayItems();
-            showStatus("已添加方块: " + trimmed, 0x55FF55);
+            saveConfig(); // 立即自动保存并落盘
+            showStatus("已添加方块并生效: " + trimmed, 0x55FF55);
         } else {
             showStatus("条目已存在或无效", 0xFFAAAA);
         }
@@ -226,6 +227,7 @@ public class BlockDurabilityScreen extends Screen {
                 Component.literal(explosionEnabled ? "爆炸破坏: §a开启" : "爆炸破坏: §c关闭"),
                 btn -> {
                     explosionEnabled = !explosionEnabled;
+                    saveConfig();
                     init();
                 }
         ).bounds(toolX, btnY, toolWidth, btnHeight).build());
@@ -236,6 +238,7 @@ public class BlockDurabilityScreen extends Screen {
                 Component.literal(useBulletDamage ? "子弹威力: §a真实" : "子弹威力: §7固定"),
                 btn -> {
                     useBulletDamage = !useBulletDamage;
+                    saveConfig();
                     init();
                 }
         ).bounds(toolX, btnY, toolWidth, btnHeight).build());
@@ -247,6 +250,7 @@ public class BlockDurabilityScreen extends Screen {
                 btn -> {
                     hardnessMultiplier = Math.round((hardnessMultiplier + 0.5) * 10.0) / 10.0;
                     if (hardnessMultiplier > 5.0) hardnessMultiplier = 0.5;
+                    saveConfig();
                     rebuildDisplayItems();
                     init();
                 }
@@ -259,6 +263,7 @@ public class BlockDurabilityScreen extends Screen {
                 btn -> {
                     healTimeoutSeconds += 30;
                     if (healTimeoutSeconds > 300) healTimeoutSeconds = 0;
+                    saveConfig();
                     init();
                 }
         ).bounds(toolX, btnY, toolWidth, btnHeight).build());
@@ -270,9 +275,7 @@ public class BlockDurabilityScreen extends Screen {
         }).bounds(toolX, bottomActionY - btnHeight - 4, toolWidth, btnHeight).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("✕ 关闭"), btn -> {
-            if (this.minecraft != null) {
-                this.minecraft.setScreen(this.parentScreen);
-            }
+            onClose();
         }).bounds(toolX, bottomActionY, toolWidth, btnHeight).build());
     }
 
@@ -291,30 +294,34 @@ public class BlockDurabilityScreen extends Screen {
             }
         }
         rebuildDisplayItems();
-        showStatus("已导入 " + added + " 个常用预设标签", 0x55FF55);
+        saveConfig();
+        showStatus("已导入 " + added + " 个常用预设标签并生效", 0x55FF55);
     }
 
     private void saveConfig() {
-        BlockHPConfig.BLOCK_WHITELIST.set(currentWhitelist);
-        BlockHPConfig.ENABLED.set(enabled);
-        BlockHPConfig.EXPLOSION_ENABLED.set(explosionEnabled);
-        BlockHPConfig.USE_BULLET_DAMAGE.set(useBulletDamage);
-        BlockHPConfig.HARDNESS_MULTIPLIER.set(hardnessMultiplier);
-        BlockHPConfig.HEAL_TIMEOUT_SECONDS.set(healTimeoutSeconds);
-
-        // 写盘持久化并热重载缓存
-        BlockHPConfig.SPEC.save();
-        BlockHPManager.invalidateCache();
+        boolean ok = BlockHPConfig.saveAndPersist(
+                currentWhitelist,
+                enabled,
+                explosionEnabled,
+                useBulletDamage,
+                hardnessMultiplier,
+                healTimeoutSeconds
+        );
 
         if (this.minecraft != null) {
-            this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.2F));
+            this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, ok ? 1.2F : 0.6F));
         }
-        showStatus("✔ 配置已保存并立即生效！", 0x55FF55);
+        if (ok) {
+            showStatus("✔ 配置已保存并立即生效！", 0x55FF55);
+        } else {
+            showStatus("❌ 保存失败，请检查日志", 0xFFAAAA);
+        }
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        // 1. 只渲染底层磨砂背景，绝不让前景自定义面板被二次模糊覆盖
+        super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         int margin = 12;
         int toolWidth = 145;
@@ -322,16 +329,16 @@ public class BlockDurabilityScreen extends Screen {
         int listTop = 32;
         int listBottom = this.height - 14;
 
-        // 顶栏主标题
-        guiGraphics.drawString(this.font, "§lBlock Durability 方块耐久管理中心", margin + 2, 12, 0xFFFFFF);
+        // 顶栏主标题（高对比度，开启阴影）
+        guiGraphics.drawString(this.font, "§lBlock Durability 方块耐久管理中心", margin + 2, 12, 0xFFFFFF, true);
 
         // 临时状态反馈通知
         if (!statusFeedback.isEmpty() && System.currentTimeMillis() - statusFeedbackTime < 3000) {
-            guiGraphics.drawString(this.font, statusFeedback, margin + 230, 12, statusFeedbackColor);
+            guiGraphics.drawString(this.font, statusFeedback, margin + 230, 12, statusFeedbackColor, true);
         }
 
         // ==================== 左侧方块列表容器 ====================
-        guiGraphics.fill(margin - 1, listTop - 1, margin + leftWidth + 1, listBottom + 1, 0xFF555555);
+        guiGraphics.fill(margin - 1, listTop - 1, margin + leftWidth + 1, listBottom + 1, 0xFF444444);
         guiGraphics.fill(margin, listTop, margin + leftWidth, listBottom, 0xFF141414);
 
         int contentTop = listTop + 26;
@@ -358,7 +365,7 @@ public class BlockDurabilityScreen extends Screen {
                     && mouseY >= contentTop && mouseY <= listBottom;
 
             if (isHovered) {
-                guiGraphics.fill(margin + 2, rowY, margin + leftWidth - 8, rowY + ROW_HEIGHT, 0x22FFFFFF);
+                guiGraphics.fill(margin + 2, rowY, margin + leftWidth - 8, rowY + ROW_HEIGHT, 0x2AFFFFFF);
             }
 
             // 渲染方块 3D 物品图标
@@ -366,14 +373,14 @@ public class BlockDurabilityScreen extends Screen {
                 guiGraphics.renderItem(item.icon, margin + 6, rowY + 7);
             }
 
-            // 标题与副标题
-            guiGraphics.drawString(this.font, item.title, margin + 28, rowY + 5, isHovered ? 0xFFFFAA : 0xFFFFFF);
-            guiGraphics.drawString(this.font, "§8" + item.subtitle, margin + 28, rowY + 16, 0x777777);
+            // 标题与副标题（开启 dropShadow，高对比度纯白 + 浅灰）
+            guiGraphics.drawString(this.font, item.title, margin + 28, rowY + 5, isHovered ? 0xFFFFAA : 0xFFFFFF, true);
+            guiGraphics.drawString(this.font, item.subtitle, margin + 28, rowY + 16, 0xFFAAAAAA, true);
 
-            // 耐久指示器
+            // 耐久指示器（亮绿带阴影）
             int hpWidth = this.font.width(item.hpText);
             int hpX = margin + leftWidth - 36 - hpWidth;
-            guiGraphics.drawString(this.font, "§a" + item.hpText, hpX, rowY + 10, 0x55FF55);
+            guiGraphics.drawString(this.font, item.hpText, hpX, rowY + 10, 0xFF55FF55, true);
 
             // 删除按钮 (✕)
             boolean isDelHovered = mouseX >= margin + leftWidth - 26 && mouseX <= margin + leftWidth - 12
@@ -381,7 +388,7 @@ public class BlockDurabilityScreen extends Screen {
                     && mouseY >= contentTop && mouseY <= listBottom;
 
             guiGraphics.fill(margin + leftWidth - 26, rowY + 7, margin + leftWidth - 12, rowY + 21,
-                    isDelHovered ? 0x88FF4444 : 0x44FF2222);
+                    isDelHovered ? 0xCCFF4444 : 0x88FF2222);
             guiGraphics.drawCenteredString(this.font, "✕", margin + leftWidth - 19, rowY + 10, 0xFFFFFF);
         }
 
@@ -399,10 +406,13 @@ public class BlockDurabilityScreen extends Screen {
 
         // ==================== 右侧工具面板容器 ====================
         int toolX = this.width - toolWidth - margin;
-        guiGraphics.fill(toolX - 1, listTop - 1, toolX + toolWidth + 1, listBottom + 1, 0xFF555555);
+        guiGraphics.fill(toolX - 1, listTop - 1, toolX + toolWidth + 1, listBottom + 1, 0xFF444444);
         guiGraphics.fill(toolX, listTop, toolX + toolWidth, listBottom, 0xFF181818);
 
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        // 渲染顶层交互控件（按钮与搜索框），避免 super.render() 重新触发背景模糊覆盖
+        for (net.minecraft.client.gui.components.Renderable renderable : this.renderables) {
+            renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
     }
 
     @Override
@@ -426,10 +436,11 @@ public class BlockDurabilityScreen extends Screen {
                         && mouseY >= rowY + 7 && mouseY <= rowY + 21) {
                     currentWhitelist.remove(item.rawEntry);
                     rebuildDisplayItems();
+                    saveConfig(); // 删除后立即自动保存并落盘
                     if (this.minecraft != null) {
                         this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 0.8F));
                     }
-                    showStatus("已移除: " + item.rawEntry, 0xFFAAAA);
+                    showStatus("已移除并生效: " + item.rawEntry, 0xFFAAAA);
                     return true;
                 }
             }
@@ -461,6 +472,8 @@ public class BlockDurabilityScreen extends Screen {
 
     @Override
     public void onClose() {
+        // 关闭界面前无条件再执行一次持久化落盘，确保无论 ESC 还是点击关闭都绝不丢配置
+        saveConfig();
         if (this.minecraft != null) {
             this.minecraft.setScreen(this.parentScreen);
         }

@@ -1,8 +1,13 @@
 package top.dreamfall.blockdurability;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -91,5 +96,46 @@ public class BlockHPTest {
         // 范围外：距离 4.5，衰减比例 0.0
         float outFalloff = (float) Math.max(0.0, 1.0 - (4.5 / radius));
         assertEquals(0.0f, outFalloff, 0.001f);
+    }
+
+    @Test
+    @DisplayName("NightConfig 持久化测试：多行白名单更新且保留其他配置")
+    void testConfigPersistence(@TempDir Path tempDir) throws Exception {
+        Path path = tempDir.resolve(BlockDurability.MOD_ID + "-common.toml");
+        String initialContent = """
+                [general]
+                enabled = true
+                useBulletDamage = false
+                healTimeoutSeconds = 120
+                damagePerHit = 2.0
+
+                [whitelist]
+                blockWhitelist = [
+                  "minecraft:stone",
+                  "minecraft:dirt"
+                ]
+
+                [hp_calculation]
+                hardnessMultiplier = 1.5
+
+                [explosion]
+                enabled = true
+                """;
+        Files.writeString(path, initialContent);
+
+        List<String> whitelist = List.of("minecraft:stone", "minecraft:end_stone");
+        boolean result = BlockHPConfig.saveAndPersist(path, whitelist, true, true, false, 2.5, 180);
+        assertTrue(result);
+
+        try (CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build()) {
+            config.load();
+            assertEquals(whitelist, config.get("whitelist.blockWhitelist"));
+            assertEquals(true, config.get("general.enabled"));
+            assertEquals(false, config.get("general.useBulletDamage"));
+            assertEquals(180, ((Number) config.get("general.healTimeoutSeconds")).intValue());
+            assertEquals(2.5, ((Number) config.get("hp_calculation.hardnessMultiplier")).doubleValue(), 0.001);
+            assertEquals(true, config.get("explosion.enabled"));
+            assertEquals(2.0, ((Number) config.get("general.damagePerHit")).doubleValue(), 0.001);
+        }
     }
 }

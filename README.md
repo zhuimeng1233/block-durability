@@ -1,164 +1,148 @@
-# [BD][BDur] Block Durability (v2.1.0)
+# [BD] Block Durability 方块耐久 (v2.1.0)
 
-给 Minecraft 方块增加耐久值，让枪械和爆炸可以逐步破坏它们。新增**游戏内原生可视化配置界面**支持。
+<p align="center">
+  <img src="https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg" alt="Minecraft Version">
+  <img src="https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge-blue.svg" alt="Mod Loader">
+  <img src="https://img.shields.io/badge/Addon%20For-TaCZ%201.2.0+-orange.svg" alt="TaCZ 1.2.0+">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+</p>
 
-## 演示
+<p align="center">
+  <b>为 Minecraft 中的方块添加“耐久度”机制 —— 用枪械和爆炸逐层削减血量，直到方块崩解碎裂！</b><br>
+  不再是简单的“能打/不能打”，破坏感与枪战沉浸感直接拉满。
+</p>
 
-<table>
+---
+
+## 🎬 效果演示 / Demo
+
+<p align="center">
+  <img src="assets/blockdurability_demo_10mb.gif" alt="Block Durability 射击与破坏演示" width="760">
+  <br>
+  <i>（使用 TaCZ 枪械射击末地石方块，裂痕逐步加深直至碎裂摧毁）</i>
+</p>
+
+<table align="center">
   <tr>
-    <td width="50%">
+    <td width="50%" align="center">
       <img src="assets/block-durability-explosion.gif" alt="重型爆炸破坏演示" width="100%">
-      <p align="center">开炮！</p>
+      <br><b>榴弹/火炮范围波及</b>
     </td>
-    <td width="50%">
+    <td width="50%" align="center">
       <img src="assets/block-durability-rpg.gif" alt="RPG 爆炸破坏演示" width="100%">
-      <p align="center">RPG 爆炸破坏</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="assets/block-durability-explosion-spray.gif" alt="连续爆炸破坏演示" width="100%">
-      <p align="center">《爆炸喷》</p>
-    </td>
-    <td width="50%">
-      <img src="assets/block-durability-3x3x3-high-explosive.gif" alt="3x3x3 高爆弹破坏演示" width="100%">
-      <p align="center">3x3x3 高爆弹炸黑曜石</p>
+      <br><b>RPG 爆破拆楼</b>
     </td>
   </tr>
 </table>
 
-<p align="center">
-  <a href="assets/block-durability-demo.gif">
-    <img src="assets/block-durability-demo.gif" alt="Block Durability 枪械射击破坏演示" width="720">
-  </a>
-</p>
+---
 
-## 爆炸耐久
+## 🌟 核心特性 / Features
 
-v2.0.0 的主分支面向 Minecraft 1.21.1 NeoForge，重点加入了爆炸与方块耐久的联动：
+### 1. 🎛️ 全新游戏内可视化方块管理中心 (仿 Advanced XRay 交互)
+从 `v2.1.0` 起，彻底告别繁琐的手动编辑配置文件！游戏内输入 `/bd config` 即可呼出全中文、高清晰度的方块耐久管理中心：
+- ✋ **一键添加手持方块**：主手拿什么方块，点一下直接加入破坏白名单并即时落盘！
+- 👁️ **一键添加目视方块**：准星对准视野内的任意方块，一键捕获并收录到白名单！
+- 🔍 **全局方块检索浏览器**：内置 3D 图标预览与中英双语检索，从数千种方块中点选添加。
+- ⚡ **即时自动保存 (Auto-Save)**：任何增删、预设导入、开关调整（真实威力/硬度乘数/自愈时间）以及关闭界面时，**全流程 100% 自动写盘**，重进世界或重启游戏绝不丢失！
 
-- **TaCZ 爆炸物**：RPG、榴弹等原本只造成冲击、不破坏地形的爆炸，会按距离对范围内白名单方块追加耐久伤害。
-- **原版及其他爆炸**：TNT、苦力怕、机械动力火炮等爆炸仍按原逻辑直接破坏方块；没有直接被炸碎的范围内白名单方块，会继续受到距离衰减的耐久伤害。
-- **掩体遮挡**：爆炸到方块之间的实心碰撞体会阻挡耐久伤害，减少隔墙波及。
-- **可配置**：爆炸伤害倍率、处理范围、原版爆炸兼容开关、方块 HP 和白名单都可以在服务端配置中调整。
+### 2. 🔫 真实子弹威力 & 阶梯式裂纹破坏
+- **真实威力模式**：支持按 TaCZ 子弹的实体伤害倍率削减方块血量（反器材重狙穿墙碎石、手枪逐步磨血）。
+- **固定点射模式**：每发子弹固定扣除指定耐久值，适合对战防守平衡。
+- **阶段性裂痕**：伴随受损进度同步呈现原版 0~9 级递进破坏裂纹与粒子音效。
 
-> 只有加入白名单的方块才会受到这套耐久机制影响。实际破坏效果取决于方块硬度、HP 覆盖值、爆炸位置和配置倍率。
+### 3. 💥 爆炸耐久联动
+- **TaCZ 爆炸武器**：RPG、高爆榴弹对爆炸范围内的白名单方块按距离产生真实耐久波及衰减。
+- **原版及模组爆炸**：平滑兼容 TNT、苦力怕爆炸。未被瞬间秒杀的方块将继续受到耐久冲击波伤害。
+- **防隔墙穿透**：爆炸与方块之间的实心障碍体会有效遮挡伤害，掩体更真实。
 
-## 黑曜石也能被炸开
-
-黑曜石不再必须依赖原版“炸不掉”的规则。它的耐久值由硬度公式计算，不需要手动写死 150：
-
+### 4. 🧠 智能硬度公式 & 全模组标签 (Tag) 兼容
+方块耐久默认按原版破坏硬度自动计算，无须手动配置繁琐数值：
 ```text
-方块 HP = max(minBlockHP, 方块原版硬度 × hardnessMultiplier)
+方块 HP = max(最低血量, 方块硬度 × 硬度乘数)
 ```
+- 原生支持 `tag:minecraft:planks`、`tag:c:glass_blocks` 等标签匹配，自动向下兼容几乎所有模组的新方块！
+- 亦支持精确 ID（如 `minecraft:end_stone`）与通配符（如 `minecraft:*glass*`）。
+- 黑曜石（硬度 50）在乘数 3.0 下 HP 达到 150，需要数十发炮弹或重型狙击枪连续射击方可击穿！
 
-黑曜石的原版硬度是 `50`。把它加入白名单，并将 `hardnessMultiplier` 设为 `3.0`：
+### 5. ⏳ 超时自愈与内存安全
+- 受损未碎的方块在设定的闲置时间（默认 120 秒）后会自动清除裂纹、自愈回满血量并回收内存。
+- 管理员可在游戏内通过原版指令随时动态调整：
+  ```text
+  /gamerule blockDurabilityHealSeconds <秒数>
+  ```
+  *(设为 `0` 则彻底关闭自愈机制)*
 
-```toml
-[whitelist]
-blockWhitelist = [
-    "minecraft:obsidian"
-]
+---
 
-[hp_calculation]
-minBlockHP = 1.0
-hardnessMultiplier = 3.0
-blockHPOverrides = []
-```
+## 🎮 游戏内指令 / Commands
 
-代入公式后，黑曜石 HP 为 `max(1.0, 50 × 3.0) = 150`。在这样的耐久设置下，大约需要 **20～30 发机械动力火炮的高爆弹**才能击穿黑曜石。具体数量会受到命中位置、爆炸范围、伤害倍率和其他配置影响，可按服务器节奏继续调整。
+| 指令 | 权限 | 说明 |
+| :--- | :--- | :--- |
+| `/bd config` 或 `/blockdurability config` | 所有人 | 打开游戏内方块耐久可视化管理中心 |
+| `/bd` 或 `/blockdurability` | 所有人 | 快捷打开管理中心 |
+| `/gamerule blockDurabilityHealSeconds <秒数>` | 管理员 (OP) | 调整受损方块的自愈倒计时（默认 120 秒） |
 
-## 兼容版本
+---
 
-| 分支 | Minecraft | 加载器 | 定位 |
-| :--- | :--- | :--- | :--- |
-| `master` | 1.21.1 | NeoForge | 当前主开发分支 |
-| `forge-1.20.1` | 1.20.1 | MinecraftForge | 长期维护分支 |
+## 📦 兼容版本与分支 / Compatibility
 
-主分支要求 NeoForge 21.1.80 或更高版本。[TaCZ](https://modrinth.com/mod/tacz-1.21.1) 为可选依赖；未安装时，模组仍可处理原版及其他模组的爆炸耐久。
+| 分支 / 分发 | Minecraft 版本 | 模组加载器 | 兼容 TaCZ 状态 | 定位 |
+| :--- | :--- | :--- | :--- | :--- |
+| `master` | **1.21.1** | **NeoForge** (21.1.80+) | **TaCZ 1.2.0 官方正式版** 及以上 | 主开发分支 / 最新特性 |
+| `forge-1.20.1` | **1.20.1** | **MinecraftForge** (47.1.0+) | **TaCZ 1.0.x / 1.1.x** | 长期稳定维护分支 |
 
-## 基本配置
+> 💡 **提示**：TaCZ 为可选依赖，未安装 TaCZ 时本模组依然可以独立接管原版 TNT/苦力怕的爆炸耐久机制！
 
-配置文件位于服务端 `config/blockdurability-common.toml`。常用项如下：
+---
+
+## ⚙️ 配置文件说明 (`blockdurability-common.toml`)
+
+文件位于客户端/服务端的 `config/blockdurability-common.toml`，在游戏中通过可视化面板修改会自动实时同步更新：
 
 ```toml
 [general]
-enabled = true
-damagePerHit = 1.0
-useBulletDamage = false
-bulletDamageMultiplier = 1.0
+    enabled = true                    # 启用方块耐久系统
+    useBulletDamage = false           # 是否启用真实子弹威力（true: 按枪械真实威力; false: 固定点射伤害）
+    damagePerHit = 1.0                # 固定模式下每枪造成的伤害
+    bulletDamageMultiplier = 1.0      # 真实威力模式下的全局伤害乘数
+    healTimeoutSeconds = 120          # 自愈闲置时间（秒），设为 0 关闭
+
+[hp_calculation]
+    hardnessMultiplier = 1.5          # 硬度乘数：HP = 硬度 * 该倍率
+    minBlockHP = 1.0                  # 方块最低血量兜底
+    blockHPOverrides = []             # 个别方块的手动 HP 覆盖（留空则走公式）
 
 [explosion]
-enabled = true
-damageMultiplier = 1.0
-maxRadius = 16.0
-handleVanillaExplosions = true
+    enabled = true                    # 启用爆炸耐久波及机制
+    damageMultiplier = 1.0            # 爆炸伤害乘数
+    maxRadius = 16.0                  # 最大扫描半径（安全限制）
+    handleVanillaExplosions = true    # 是否接管原版 TNT、苦力怕等爆炸
 
-[healing]
-healTimeoutSeconds = 120
-```
-
-- `damageMultiplier`：爆炸耐久伤害倍率。
-- `maxRadius`：一次爆炸最多扫描的半径，用于限制大型爆炸的额外开销。
-- `handleVanillaExplosions`：是否处理 TNT、苦力怕等非 TaCZ 爆炸。
-- `healTimeoutSeconds`：受损方块停止受伤后恢复的时间，设为 `0` 可关闭自愈。
-
-白名单支持方块 Tag、精确 ID 和 `*` 通配符：
-
-```toml
 [whitelist]
-blockWhitelist = [
-    "tag:minecraft:planks",
-    "tag:minecraft:logs",
-    "minecraft:obsidian",
-    "minecraft:*glass"
-]
+    # 破坏白名单（支持 tag:、精确 ID、通配符）
+    blockWhitelist = [
+        "tag:c:glass_blocks",
+        "tag:c:glass_panes",
+        "tag:minecraft:planks",
+        "tag:minecraft:logs",
+        "tag:minecraft:leaves",
+        "tag:minecraft:wooden_doors",
+        "tag:minecraft:wooden_trapdoors",
+        "tag:minecraft:fences",
+        "tag:minecraft:fence_gates",
+        "tag:minecraft:wooden_stairs",
+        "tag:minecraft:wooden_slabs",
+        "tag:minecraft:wooden_buttons",
+        "tag:minecraft:wooden_pressure_plates",
+        "tag:minecraft:standing_signs",
+        "tag:minecraft:wall_signs",
+        "tag:minecraft:ceiling_hanging_signs",
+        "tag:minecraft:wall_hanging_signs"
+    ]
 ```
 
-方块最大 HP 默认按原版硬度计算。`blockHPOverrides` 只用于给个别方块指定固定值，正常情况下留空即可：
+---
 
-```toml
-[hp_calculation]
-hardnessMultiplier = 1.5
-minBlockHP = 1.0
-blockHPOverrides = []
-```
-
-如果确实需要覆盖某个方块的计算结果，可以按 `"minecraft:block_id=数值"` 的格式添加条目。
-
-## 可视化配置界面
-
-从 `v2.1.0` 起，模组已原生接入 NeoForge 游戏内配置界面系统：
-- 游戏主菜单或暂停菜单点击 **Mods -> Block Durability -> Config** 即可打开全中文图形配置菜单。
-- 支持实时直观调整白名单列表、公式系数滑块、自愈超时与各爆炸机制开关，支持即时撤销与恢复默认。
-
-## 物理化方块与机械动力兼容
-
-- 完美兼容 **机械动力 (Create Contraptions)** 与 **机械动力：航空学 (Create: Aeronautics / Sable)** 物理化载具结构。
-- 坚持双轨制原则：爆炸判定能够直接秒杀摧毁的物理方块正常炸毁；未被直接炸毁的幸存方块，按逆向局部投影与高频射线采样执行**距离衰减耐久扣血**并产生开裂。
-- 内置实体包围盒相交预检与单次爆炸采样上限安全锁（64 采样点），开销 `< 0.05ms`，杜绝服务器卡顿。
-
-## 游戏内规则
-
-管理员可以动态调整受损方块的恢复时间：
-
-```text
-/gamerule blockDurabilityHealSeconds <秒数>
-```
-
-例如 `/gamerule blockDurabilityHealSeconds 60` 表示 60 秒后恢复，设为 `0` 表示关闭自愈。
-
-## 构建
-
-需要 JDK 21：
-
-```bash
-./gradlew build
-./gradlew test
-```
-
-构建产物位于 `build/libs/blockdurability-2.1.0-neoforge.jar`。
-
-## 许可证
-
-本项目基于 [MIT 许可证](LICENSE) 开源。
+## 📄 开源许可 / License
+本项目采用 [MIT 许可证](LICENSE) 开源，欢迎在整合包中随意免费使用与传播！

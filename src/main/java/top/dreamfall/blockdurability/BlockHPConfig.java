@@ -1,9 +1,14 @@
 package top.dreamfall.blockdurability;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -227,4 +232,75 @@ public class BlockHPConfig {
     }
 
     public static class Config {}
+
+    /**
+     * 获取 NeoForge 正在运行环境的真实配置文件绝对路径。
+     */
+    public static Path getConfigPath() {
+        try {
+            return FMLPaths.CONFIGDIR.get().resolve(BlockDurability.MOD_ID + "-common.toml");
+        } catch (Throwable t) {
+            return Path.of("config", BlockDurability.MOD_ID + "-common.toml");
+        }
+    }
+
+    /**
+     * 强力持久化配置到磁盘文件 (config/blockdurability-common.toml) 并同步刷新内存及缓存。
+     */
+    public static synchronized boolean saveAndPersist(List<String> whitelist,
+                                                      boolean enabled,
+                                                      boolean explosion,
+                                                      boolean bulletDamage,
+                                                      double hardness,
+                                                      int healTimeout) {
+        return saveAndPersist(getConfigPath(), whitelist, enabled, explosion, bulletDamage, hardness, healTimeout);
+    }
+
+    static synchronized boolean saveAndPersist(Path path,
+                                               List<String> whitelist,
+                                               boolean enabled,
+                                               boolean explosion,
+                                               boolean bulletDamage,
+                                               double hardness,
+                                               int healTimeout) {
+        try {
+            Path parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            if (Files.notExists(path)) {
+                Files.createFile(path);
+            }
+
+            CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build();
+            try {
+                config.load();
+                config.set("whitelist.blockWhitelist", new ArrayList<>(whitelist));
+                config.set("general.enabled", enabled);
+                config.set("general.useBulletDamage", bulletDamage);
+                config.set("general.healTimeoutSeconds", healTimeout);
+                config.set("hp_calculation.hardnessMultiplier", hardness);
+                config.set("explosion.enabled", explosion);
+                config.save();
+            } finally {
+                config.close();
+            }
+
+            if (SPEC.isLoaded()) {
+                BLOCK_WHITELIST.set(new ArrayList<>(whitelist));
+                ENABLED.set(enabled);
+                EXPLOSION_ENABLED.set(explosion);
+                USE_BULLET_DAMAGE.set(bulletDamage);
+                HARDNESS_MULTIPLIER.set(hardness);
+                HEAL_TIMEOUT_SECONDS.set(healTimeout);
+            }
+
+            BlockDurability.LOGGER.info("Block Durability config successfully persisted to {}", path.toAbsolutePath());
+            BlockHPManager.invalidateCache();
+            return true;
+        } catch (Exception e) {
+            BlockDurability.LOGGER.error("Failed to persist config to disk: ", e);
+            return false;
+        }
+    }
 }

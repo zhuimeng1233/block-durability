@@ -13,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.dreamfall.blockdurability.client.ClientConfigHandler;
 
-import java.nio.file.Path;
-
 @Mod(BlockDurability.MOD_ID)
 public class BlockDurability {
     public static final String MOD_ID = "blockdurability";
@@ -65,13 +63,10 @@ public class BlockDurability {
      * 用当前 spec 修正配置文件，把新增的配置项补进去。
      */
     private static void updateConfigFile() {
-        try {
-            Path path = Path.of("config", MOD_ID + "-common.toml");
-            CommentedFileConfig cfg = CommentedFileConfig.builder(path).build();
+        try (CommentedFileConfig cfg = CommentedFileConfig.builder(BlockHPConfig.getConfigPath()).sync().build()) {
             cfg.load();
             BlockHPConfig.SPEC.correct(cfg);
             cfg.save();
-            cfg.close();
             LOGGER.info("Config file updated with new options.");
         } catch (Exception e) {
             LOGGER.debug("Config update skipped: {}", e.toString());

@@ -96,8 +96,8 @@ public class AddBlockScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // 暗化底层界面
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        // 1. 只渲染底层磨砂背景，绝不在末尾重复触发背景模糊
+        super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         int winWidth = Math.min(320, this.width - 40);
         int winHeight = Math.min(260, this.height - 40);
@@ -109,8 +109,8 @@ public class AddBlockScreen extends Screen {
         guiGraphics.fill(winX - 1, winY - 1, winX + winWidth + 1, winY + winHeight + 1, 0xFFB0B0B0);
         guiGraphics.fill(winX, winY, winX + winWidth, winY + winHeight, 0xFF141414);
 
-        // 顶栏标题
-        guiGraphics.drawString(this.font, "§l选择要添加的方块 (" + filteredBlocks.size() + ")", winX + 10, winY + 8, 0xFFFFFF);
+        // 顶栏标题（高对比度，开启阴影）
+        guiGraphics.drawString(this.font, "§l选择要添加的方块 (" + filteredBlocks.size() + ")", winX + 10, winY + 8, 0xFFFFFF, true);
 
         // 分割线
         guiGraphics.fill(winX + 8, winY + 22, winX + winWidth - 8, winY + 23, 0xFF333333);
@@ -149,9 +149,9 @@ public class AddBlockScreen extends Screen {
                 guiGraphics.renderItem(info.stack, winX + 8, rowY + 5);
             }
 
-            // 渲染方块中文名称与 ID
-            guiGraphics.drawString(this.font, info.name, winX + 30, rowY + 4, isHovered ? 0xFFFFAA : 0xFFFFFF);
-            guiGraphics.drawString(this.font, "§7" + info.id, winX + 30, rowY + 14, 0x888888);
+            // 渲染方块中文名称与 ID（开启阴影，清晰分层）
+            guiGraphics.drawString(this.font, info.name, winX + 30, rowY + 4, isHovered ? 0xFFFFAA : 0xFFFFFF, true);
+            guiGraphics.drawString(this.font, info.id, winX + 30, rowY + 14, 0xFFAAAAAA, true);
         }
 
         guiGraphics.disableScissor();
@@ -166,7 +166,10 @@ public class AddBlockScreen extends Screen {
             guiGraphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, 0xFF888888);
         }
 
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        // 渲染输入框和取消按钮，不再使用 super.render() 避免二次模糊
+        for (net.minecraft.client.gui.components.Renderable renderable : this.renderables) {
+            renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
     }
 
     @Override
