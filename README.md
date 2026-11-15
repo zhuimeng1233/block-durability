@@ -100,7 +100,7 @@
 | 分支 / 分发 | Minecraft 版本 | 模组加载器 | 兼容 TaCZ 状态 | 定位 |
 | :--- | :--- | :--- | :--- | :--- |
 | `master` | **1.21.1** | **NeoForge** (21.1.80+) | **TaCZ 1.2.0 官方正式版** 及以上 | 主开发分支 / 最新特性 |
-| `forge-1.20.1` | **1.20.1** | **MinecraftForge** (47.1.0+) | **TaCZ 1.0.x / 1.1.x** | 长期稳定维护分支 |
+| `forge-1.20.1` | **1.20.1** | **MinecraftForge** (47.1.0+) | **TaCZ 1.0.2+（含 1.2.0 及以上）** | 长期稳定维护分支 |
 
 > 💡 **提示**：TaCZ 为可选依赖，未安装 TaCZ 时本模组依然可以独立接管原版 TNT/苦力怕的爆炸耐久机制！
 
@@ -122,10 +122,8 @@
     hardnessMultiplier = 1.5          # 硬度乘数：HP = 硬度 * 该倍率
     minBlockHP = 1.0                  # 方块最低血量兜底
     # 单独指定特定方块的固定 HP（优先级高于硬度公式，格式："modid:block_id=血量"，支持通配符）
-    blockHPOverrides = [
-        "minecraft:obsidian=50.0",
-        "minecraft:*glass*=1.0"
-    ]
+    # 默认留空；示例："minecraft:obsidian=50.0", "minecraft:*glass*=1.0"
+    blockHPOverrides = []
 
 [explosion]
     enabled = true                    # 启用爆炸耐久波及机制
