@@ -1,4 +1,4 @@
-# [BD] Block Durability 方块耐久 (v2.1.0)
+# [BD] Block Durability 方块耐久 (v2.1.1)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg" alt="Minecraft Version">

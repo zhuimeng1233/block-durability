@@ -264,35 +264,19 @@ public class BlockHPConfig {
                                                double hardness,
                                                int healTimeout) {
         try {
-            Path parent = path.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            if (Files.notExists(path)) {
-                Files.createFile(path);
-            }
-
-            CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build();
-            try {
-                config.load();
-                config.set("whitelist.blockWhitelist", new ArrayList<>(whitelist));
-                config.set("general.enabled", enabled);
-                config.set("general.useBulletDamage", bulletDamage);
-                config.set("general.healTimeoutSeconds", healTimeout);
-                config.set("hp_calculation.hardnessMultiplier", hardness);
-                config.set("explosion.enabled", explosion);
-                config.save();
-            } finally {
-                config.close();
-            }
-
-            if (SPEC.isLoaded()) {
+            // 在游戏运行时（SPEC 已加载），通过 NeoForge 官方配置管线更新并写盘。
+            // 由框架负责原子写入与并发控制，避免与 ConfigWatcher 发生竞态或生成多余的 .bak 备份。
+            if (SPEC != null && SPEC.isLoaded()) {
                 BLOCK_WHITELIST.set(new ArrayList<>(whitelist));
                 ENABLED.set(enabled);
                 EXPLOSION_ENABLED.set(explosion);
                 USE_BULLET_DAMAGE.set(bulletDamage);
                 HARDNESS_MULTIPLIER.set(hardness);
                 HEAL_TIMEOUT_SECONDS.set(healTimeout);
+                SPEC.save();
+            } else {
+                // 脱机环境或单元测试环境回退机制
+                persistToDiskFallback(path, whitelist, enabled, explosion, bulletDamage, hardness, healTimeout);
             }
 
             BlockDurability.LOGGER.info("Block Durability config successfully persisted to {}", path.toAbsolutePath());
@@ -301,6 +285,36 @@ public class BlockHPConfig {
         } catch (Exception e) {
             BlockDurability.LOGGER.error("Failed to persist config to disk: ", e);
             return false;
+        }
+    }
+
+    private static void persistToDiskFallback(Path path,
+                                              List<String> whitelist,
+                                              boolean enabled,
+                                              boolean explosion,
+                                              boolean bulletDamage,
+                                              double hardness,
+                                              int healTimeout) throws Exception {
+        Path parent = path.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        if (Files.notExists(path)) {
+            Files.createFile(path);
+        }
+
+        CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build();
+        try {
+            config.load();
+            config.set("whitelist.blockWhitelist", new ArrayList<>(whitelist));
+            config.set("general.enabled", enabled);
+            config.set("general.useBulletDamage", bulletDamage);
+            config.set("general.healTimeoutSeconds", healTimeout);
+            config.set("hp_calculation.hardnessMultiplier", hardness);
+            config.set("explosion.enabled", explosion);
+            config.save();
+        } finally {
+            config.close();
         }
     }
 }

@@ -138,4 +138,33 @@ public class BlockHPTest {
             assertEquals(2.0, ((Number) config.get("general.damagePerHit")).doubleValue(), 0.001);
         }
     }
+
+    @Test
+    void testRealWorldClientConfigPersistence(@TempDir Path tempDir) throws Exception {
+        Path path = tempDir.resolve("blockdurability-common.toml");
+        Path clientConfig = Path.of("D:/minecraft/.minecraft/versions/1.21.1-NeoForge_21.1.233/config/blockdurability-common.toml");
+        String content;
+        if (Files.exists(clientConfig)) {
+            content = Files.readString(clientConfig);
+        } else {
+            content = """
+                    [general]
+                    enabled = true
+                    [whitelist]
+                    blockWhitelist = ["tag:c:glass_blocks"]
+                    [hp_calculation]
+                    hardnessMultiplier = 1.5
+                    """;
+        }
+        Files.writeString(path, content);
+        
+        List<String> whitelist = List.of("minecraft:end_stone");
+        boolean ok = BlockHPConfig.saveAndPersist(path, whitelist, true, true, false, 1.5, 120);
+        assertTrue(ok);
+        
+        try (CommentedFileConfig cfg = CommentedFileConfig.builder(path).sync().build()) {
+            cfg.load();
+            assertEquals(whitelist, cfg.get("whitelist.blockWhitelist"));
+        }
+    }
 }

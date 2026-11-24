@@ -1,6 +1,5 @@
 package top.dreamfall.blockdurability;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import net.minecraft.world.level.GameRules;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -18,9 +17,9 @@ public class BlockDurability {
     public static final String MOD_ID = "blockdurability";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    // 注册游戏规则：/gamerule blockDurabilityHealSeconds <秒数>
+    // 注册游戏规则：/gamerule blockDurabilityHealSeconds <秒数> (-1 表示跟随配置文件)
     public static final GameRules.Key<GameRules.IntegerValue> RULE_BLOCK_HEAL_SECONDS =
-            GameRules.register("blockDurabilityHealSeconds", GameRules.Category.MISC, GameRules.IntegerValue.create(120));
+            GameRules.register("blockDurabilityHealSeconds", GameRules.Category.MISC, GameRules.IntegerValue.create(-1));
 
     public BlockDurability(IEventBus modEventBus, ModContainer container) {
         // 注册配置
@@ -53,23 +52,6 @@ public class BlockDurability {
             LOGGER.info("TACZ detected - Block Durability bullet hit handler registered!");
         } catch (ClassNotFoundException e) {
             LOGGER.info("TACZ not found - Block Durability will run in explosion-only mode until TACZ is installed.");
-        }
-
-        // 补写配置文件中缺失的新增配置项
-        updateConfigFile();
-    }
-
-    /**
-     * 用当前 spec 修正配置文件，把新增的配置项补进去。
-     */
-    private static void updateConfigFile() {
-        try (CommentedFileConfig cfg = CommentedFileConfig.builder(BlockHPConfig.getConfigPath()).sync().build()) {
-            cfg.load();
-            BlockHPConfig.SPEC.correct(cfg);
-            cfg.save();
-            LOGGER.info("Config file updated with new options.");
-        } catch (Exception e) {
-            LOGGER.debug("Config update skipped: {}", e.toString());
         }
     }
 }

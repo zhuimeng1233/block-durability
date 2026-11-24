@@ -19,6 +19,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 import java.util.HashSet;
@@ -57,6 +58,9 @@ public class BlockHPEventHandler {
         // 原版已被选定直接摧毁的方块集合（双轨制：原版该炸掉的维持原版行为）
         List<BlockPos> affectedBlocks = event.getAffectedBlocks();
         Set<BlockPos> vanillaDestroyed = new HashSet<>(affectedBlocks);
+        for (BlockPos destroyedPos : affectedBlocks) {
+            BlockHPManager.clearBlock(serverLevel, destroyedPos);
+        }
 
         int minX = (int) Math.floor(center.x - effectiveRadius);
         int maxX = (int) Math.ceil(center.x + effectiveRadius);
@@ -137,6 +141,13 @@ public class BlockHPEventHandler {
     public void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             BlockHPManager.onChunkUnload(serverLevel, event.getChunk().getPos());
+        }
+    }
+
+    @SubscribeEvent
+    public void onLevelUnload(LevelEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            BlockHPManager.onLevelUnload(serverLevel);
         }
     }
 

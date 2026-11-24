@@ -124,7 +124,7 @@ public class BlockDurabilityScreen extends Screen {
             Block block = BuiltInRegistries.BLOCK.get(rl);
             ItemStack stack = new ItemStack(block.asItem());
             String title = stack.isEmpty() ? block.getName().getString() : stack.getHoverName().getString();
-            float hardness = block.defaultBlockState().getDestroySpeed(null, null);
+            float hardness = block.defaultDestroyTime();
             float hp = (float) Math.max(1.0, hardness * hardnessMultiplier);
             String hpText = String.format("%.1f HP", hp);
             return new WhitelistItem(raw, title, raw, stack, hpText);
