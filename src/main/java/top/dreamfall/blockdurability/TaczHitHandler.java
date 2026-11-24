@@ -26,6 +26,8 @@ public class TaczHitHandler {
         Level level = event.getLevel();
         if (!(level instanceof ServerLevel serverLevel)) return;
 
+        if (event.getHitResult() == null || event.getState() == null) return;
+
         BlockPos pos = event.getHitResult().getBlockPos();
         BlockState state = event.getState();
 
@@ -37,7 +39,7 @@ public class TaczHitHandler {
 
         // --- 计算本次伤害 ---
         float damage;
-        if (BlockHPConfig.USE_BULLET_DAMAGE.get()) {
+        if (BlockHPConfig.USE_BULLET_DAMAGE.get() && bullet != null) {
             damage = bullet.getDamage(hitVec)
                     * BlockHPConfig.BULLET_DAMAGE_MULTIPLIER.get().floatValue();
         } else {

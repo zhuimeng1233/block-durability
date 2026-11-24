@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import top.dreamfall.blockdurability.BlockHPConfig;
+import top.dreamfall.blockdurability.BlockHPManager;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -61,6 +61,9 @@ public class BlockHPEventHandler {
         // 原版已被选定直接摧毁的方块集合（双轨制：原版该炸掉的维持原版行为）
         List<BlockPos> affectedBlocks = event.getAffectedBlocks();
         Set<BlockPos> vanillaDestroyed = new HashSet<>(affectedBlocks);
+        for (BlockPos destroyedPos : affectedBlocks) {
+            BlockHPManager.clearBlock(serverLevel, destroyedPos);
+        }
 
         int minX = (int) Math.floor(center.x - effectiveRadius);
         int maxX = (int) Math.ceil(center.x + effectiveRadius);
@@ -90,19 +93,21 @@ public class BlockHPEventHandler {
                     if (state.isAir()) continue;
                     if (!BlockHPManager.isBreakable(state)) continue;
 
-                    // 视线阻挡检测（如果隔着未破坏的实心厚掩体，阻挡冲击波）
+                    // 视线阻挡检测（贴脸 1.8 格内冲击波直接贯通，超出 1.8 格检测实心掩体阻隔）
                     Vec3 targetCenter = new Vec3(x + 0.5, y + 0.5, z + 0.5);
-                    BlockHitResult hit = serverLevel.clip(new ClipContext(
-                            center,
-                            targetCenter,
-                            ClipContext.Block.COLLIDER,
-                            ClipContext.Fluid.NONE,
-                            null
-                    ));
-                    if (hit.getType() != HitResult.Type.MISS
-                            && !hit.getBlockPos().equals(cursor)
-                            && !vanillaDestroyed.contains(hit.getBlockPos())) {
-                        continue;
+                    if (distSq > 3.24) {
+                        BlockHitResult hit = serverLevel.clip(new ClipContext(
+                                center,
+                                targetCenter,
+                                ClipContext.Block.COLLIDER,
+                                ClipContext.Fluid.NONE,
+                                null
+                        ));
+                        if (hit.getType() != HitResult.Type.MISS
+                                && !hit.getBlockPos().equals(cursor)
+                                && !vanillaDestroyed.contains(hit.getBlockPos())) {
+                            continue;
+                        }
                     }
 
                     double dist = Math.sqrt(distSq);
@@ -139,6 +144,13 @@ public class BlockHPEventHandler {
     public void onChunkUnload(ChunkEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             BlockHPManager.onChunkUnload(serverLevel, event.getChunk().getPos());
+        }
+    }
+
+    @SubscribeEvent
+    public void onLevelUnload(net.minecraftforge.event.level.LevelEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel serverLevel) {
+            BlockHPManager.onLevelUnload(serverLevel);
         }
     }
 

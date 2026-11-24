@@ -54,6 +54,8 @@ public class BlockHPManager {
      * @return 方块是否在白名单中（可被破坏）
      */
     public static boolean isBreakable(BlockState state) {
+        if (state == null || state.isAir()) return false;
+
         compileIfNeeded();
 
         // Tag 匹配（O(1)，优先）
@@ -65,6 +67,21 @@ public class BlockHPManager {
         String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
         for (Pattern pattern : nameWhitelistPatterns) {
             if (pattern.matcher(id).matches()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 是否在 blockHPOverrides 中显式指定了该方块的具体血量
+     */
+    public static boolean hasHpOverride(BlockState state) {
+        if (state == null) return false;
+        compileIfNeeded();
+        String id = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        for (HPOverride override : hpOverrides) {
+            if (override.pattern().matcher(id).matches()) {
+                return true;
+            }
         }
         return false;
     }
@@ -139,7 +156,7 @@ public class BlockHPManager {
         if (level instanceof ServerLevel serverLevel) {
             clearBlock(serverLevel, pos);
         } else {
-            damagedBlocks.remove(new BlockKey(level.dimension(), pos));
+            damagedBlocks.remove(new BlockKey(level.dimension(), pos.immutable()));
         }
     }
 
@@ -154,6 +171,13 @@ public class BlockHPManager {
         }
     }
 
+    /**
+     * 维度/世界卸载时清理对应的受损缓存，防止内存泄漏。
+     */
+    public static void onLevelUnload(ServerLevel level) {
+        damagedBlocks.keySet().removeIf(key -> key.dimension().equals(level.dimension()));
+    }
+
     public static void clearAll() {
         damagedBlocks.clear();
     }
@@ -164,10 +188,17 @@ public class BlockHPManager {
      * 2. 若超过配置秒数未受伤害，清除裂纹并回收内存。
      */
     public static void tick(ServerLevel level) {
+        int timeoutSeconds = BlockHPConfig.HEAL_TIMEOUT_SECONDS.get();
+        if (level.getGameRules() != null) {
+            int ruleVal = level.getGameRules().getInt(BlockDurability.RULE_BLOCK_HEAL_SECONDS);
+            if (ruleVal >= 0) {
+                timeoutSeconds = ruleVal;
+            }
+        }
+
+        final int effectiveTimeoutSec = timeoutSeconds;
         long now = System.currentTimeMillis();
-        int ruleSeconds = level.getGameRules().getInt(BlockDurability.RULE_HEAL_TIMEOUT_SECONDS);
-        int timeoutSec = ruleSeconds >= 0 ? ruleSeconds : BlockHPConfig.HEAL_TIMEOUT_SECONDS.get();
-        long timeoutMs = (timeoutSec > 0) ? timeoutSec * 1000L : Long.MAX_VALUE;
+        long timeoutMs = (effectiveTimeoutSec > 0) ? effectiveTimeoutSec * 1000L : Long.MAX_VALUE;
 
         damagedBlocks.entrySet().removeIf(entry -> {
             if (!entry.getKey().dimension().equals(level.dimension())) return false;
@@ -182,7 +213,7 @@ public class BlockHPManager {
             }
 
             DamageState ds = entry.getValue();
-            if (timeoutSec > 0 && now - ds.lastHitTime() > timeoutMs) {
+            if (effectiveTimeoutSec > 0 && now - ds.lastHitTime() > timeoutMs) {
                 clearCrackOverlay(level, p, ds.crackId());
                 return true;
             }
@@ -208,6 +239,9 @@ public class BlockHPManager {
     // ==================== 内部 ====================
 
     private static synchronized int allocateCrackId() {
+        if (nextCrackId >= 2_000_000_000 || nextCrackId < 100_000) {
+            nextCrackId = 100_000;
+        }
         return nextCrackId++;
     }
 

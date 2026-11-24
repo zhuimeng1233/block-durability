@@ -1,6 +1,5 @@
 package top.dreamfall.blockdurability;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -18,8 +17,9 @@ public class BlockDurability {
     public static final String MOD_ID = "blockdurability";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static GameRules.Key<GameRules.IntegerValue> RULE_HEAL_TIMEOUT_SECONDS =
-            GameRules.register("blockDurabilityHealSeconds", GameRules.Category.MISC, GameRules.IntegerValue.create(120));
+    // 注册游戏规则：/gamerule blockDurabilityHealSeconds <秒数> (-1 表示跟随配置文件)
+    public static final GameRules.Key<GameRules.IntegerValue> RULE_BLOCK_HEAL_SECONDS =
+            GameRules.register("blockDurabilityHealSeconds", GameRules.Category.MISC, GameRules.IntegerValue.create(-1));
 
     public BlockDurability() {
         // 注册配置
@@ -52,26 +52,6 @@ public class BlockDurability {
             LOGGER.info("TACZ detected - Block Durability gun hit handler registered!");
         } catch (ClassNotFoundException e) {
             LOGGER.info("TACZ not detected - Block Durability will run as standalone explosion durability mod.");
-        }
-
-        // 补写配置文件中缺失的新增配置项
-        updateConfigFile();
-    }
-
-    /**
-     * 用当前 spec 修正配置文件，把新增的配置项补进去。
-     */
-    private void updateConfigFile() {
-        try (CommentedFileConfig config = CommentedFileConfig.builder(BlockHPConfig.getConfigPath()).sync().build()) {
-            config.load();
-            if (BlockHPConfig.migrateLegacyConfig(config)) {
-                LOGGER.info("Migrated legacy [healing] config to [general].");
-            }
-            BlockHPConfig.SPEC.correct(config);
-            config.save();
-            LOGGER.info("Config file synced with current specification.");
-        } catch (Exception e) {
-            LOGGER.warn("Failed to auto-update config file: {}", e.getMessage());
         }
     }
 }
